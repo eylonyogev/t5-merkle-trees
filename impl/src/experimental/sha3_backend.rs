@@ -3,6 +3,10 @@
 //! Every oracle retains its original 17-byte prefix and SHA3 suffix. Packing
 //! directly into Keccak lanes removes intermediate encoded messages. A single
 //! backend selection serves an entire leaf batch or verification leaf.
+//!
+//! SHAKE128 is the standard XOF truncated to 32 bytes. SPONGE-DM272 uses
+//! full-round Keccak-f[1600], a 166-byte rate, full-state Davies--Meyer
+//! feed-forward during absorption, and a fixed 17-byte leaf domain prefix.
 
 use super::*;
 use keccak::{Backend, BackendClosure, ParFn1600, ParState1600};
@@ -32,6 +36,9 @@ impl ResearchHash for Sha3_256 {
         if plan.mode() == LeafMode::Standard {
             return Self::hash_leaf_fast(input);
         }
+        if matches!(plan.mode(), LeafMode::Shake128 | LeafMode::SpongeDm272) {
+            return Self::hash_sponge(plan, input);
+        }
         let mut output = [[0; 32]];
         keccak::Keccak::new().with_backend(LeafJob {
             plan,
@@ -46,6 +53,14 @@ impl ResearchHash for Sha3_256 {
             Self::hash_leaves_fast(input, plan.leaf_bytes(), output);
             return;
         }
+        if matches!(plan.mode(), LeafMode::Shake128 | LeafMode::SpongeDm272) {
+            keccak::Keccak::new().with_backend(SpongeJob {
+                plan,
+                input,
+                output,
+            });
+            return;
+        }
         keccak::Keccak::new().with_backend(LeafJob {
             plan,
             input,
@@ -58,6 +73,216 @@ impl ResearchHash for Sha3_256 {
     }
     fn oracle3_calls() -> u64 {
         1
+    }
+
+    fn supports_sponge_modes() -> bool {
+        true
+    }
+
+    fn hash_sponge(plan: &LeafPlan, input: &[u8]) -> Digest {
+        let mut output = [[0; 32]];
+        keccak::Keccak::new().with_backend(SpongeJob {
+            plan,
+            input,
+            output: &mut output,
+        });
+        output[0]
+    }
+}
+
+// This is prefix(4, 80), independent of the existing SHA3 oracle roles.
+const SPONGE_DM_PREFIX: [u8; 17] = *b"MTLFv001\x04\x50\0\0\0\0\0\0\0";
+
+struct SpongeJob<'a> {
+    plan: &'a LeafPlan,
+    input: &'a [u8],
+    output: &'a mut [Digest],
+}
+
+impl BackendClosure for SpongeJob<'_> {
+    fn call_once<B: Backend>(self) {
+        match self.plan.mode() {
+            LeafMode::Shake128 => {
+                sponge_batch::<B, 168, false>(self.input, self.plan.leaf_bytes(), self.output)
+            }
+            LeafMode::SpongeDm272 => {
+                sponge_batch::<B, 166, true>(self.input, self.plan.leaf_bytes(), self.output)
+            }
+            _ => unreachable!("expected SHAKE128 or SPONGE-DM272"),
+        }
+    }
+}
+
+/// A scalar entry avoids paying for an unused second SIMD record during
+/// verification and in an odd batch's final row.
+#[inline]
+fn sponge_single<const RATE: usize, const DM: bool>(
+    input: &[u8],
+    mut permute: impl FnMut(&mut [u64; 25]),
+) -> Digest {
+    let mut state = [0; 25];
+    let mut offset = 0;
+    let mut occupied = 0;
+    if DM {
+        xor_block(&mut state, &SPONGE_DM_PREFIX);
+        occupied = SPONGE_DM_PREFIX.len();
+        let take = input.len().min(RATE - occupied);
+        xor_block_at(&mut state, &input[..take], occupied);
+        occupied += take;
+        offset = take;
+        if occupied == RATE {
+            sponge_permute::<DM>(&mut state, &mut permute);
+            occupied = 0;
+        }
+    }
+    while input.len() - offset >= RATE {
+        xor_block(&mut state, &input[offset..offset + RATE]);
+        sponge_permute::<DM>(&mut state, &mut permute);
+        offset += RATE;
+    }
+    // A short prefixed message was already absorbed above. Otherwise this is
+    // the ordinary final partial block, including an empty padding block.
+    if occupied == 0 {
+        xor_block(&mut state, &input[offset..]);
+        occupied = input.len() - offset;
+    }
+    sponge_padding::<RATE, DM>(&mut state, occupied);
+    sponge_permute::<DM>(&mut state, &mut permute);
+    sponge_digest(&state)
+}
+
+fn sponge_batch<B: Backend, const RATE: usize, const DM: bool>(
+    input: &[u8],
+    width: usize,
+    output: &mut [Digest],
+) {
+    let mut states = ParState1600::<B>::default();
+    let lanes = states.len();
+    let permute = B::get_par_f1600();
+    for (rows, digests) in input
+        .chunks(width.saturating_mul(lanes))
+        .zip(output.chunks_mut(lanes))
+    {
+        if digests.len() == 1 {
+            digests[0] = sponge_single::<RATE, DM>(rows, B::get_f1600());
+            continue;
+        }
+        states.fill([0; 25]);
+        let mut offset = 0;
+        let mut occupied = 0;
+        if DM {
+            occupied = SPONGE_DM_PREFIX.len();
+            let take = width.min(RATE - occupied);
+            for (state, row) in states.iter_mut().zip(rows.chunks_exact(width)) {
+                xor_block(state, &SPONGE_DM_PREFIX);
+                xor_block_at(state, &row[..take], occupied);
+            }
+            occupied += take;
+            offset = take;
+            if occupied == RATE {
+                sponge_permute_many::<B, DM>(&mut states, permute);
+                occupied = 0;
+            }
+        }
+        while width - offset >= RATE {
+            for (state, row) in states.iter_mut().zip(rows.chunks_exact(width)) {
+                xor_block(state, &row[offset..offset + RATE]);
+            }
+            sponge_permute_many::<B, DM>(&mut states, permute);
+            offset += RATE;
+        }
+        if occupied == 0 {
+            for (state, row) in states.iter_mut().zip(rows.chunks_exact(width)) {
+                xor_block(state, &row[offset..]);
+            }
+            occupied = width - offset;
+        }
+        for state in states.iter_mut().take(digests.len()) {
+            sponge_padding::<RATE, DM>(state, occupied);
+        }
+        sponge_permute_many::<B, DM>(&mut states, permute);
+        for (state, digest) in states.iter().zip(digests) {
+            *digest = sponge_digest(state);
+        }
+    }
+}
+
+#[inline]
+fn sponge_permute<const DM: bool>(state: &mut [u64; 25], permute: &mut impl FnMut(&mut [u64; 25])) {
+    if DM {
+        let before = *state;
+        permute(state);
+        for (word, original) in state.iter_mut().zip(before) {
+            *word ^= original;
+        }
+    } else {
+        permute(state);
+    }
+}
+
+#[inline]
+fn sponge_permute_many<B: Backend, const DM: bool>(
+    states: &mut ParState1600<B>,
+    permute: ParFn1600<B>,
+) {
+    if DM {
+        let before = states.clone();
+        permute(states);
+        for (state, original) in states.iter_mut().zip(before) {
+            for (word, previous) in state.iter_mut().zip(original) {
+                *word ^= previous;
+            }
+        }
+    } else {
+        permute(states);
+    }
+}
+
+#[inline]
+fn sponge_padding<const RATE: usize, const DM: bool>(state: &mut [u64; 25], occupied: usize) {
+    let suffix = if DM { 0x01_u64 } else { 0x1f_u64 };
+    state[occupied / 8] ^= suffix << (8 * (occupied % 8));
+    state[(RATE - 1) / 8] ^= 0x80_u64 << (8 * ((RATE - 1) % 8));
+}
+
+#[inline]
+fn sponge_digest(state: &[u64; 25]) -> Digest {
+    let mut digest = [0; 32];
+    for (word, bytes) in state[..4].iter().zip(digest.chunks_exact_mut(8)) {
+        bytes.copy_from_slice(&word.to_le_bytes());
+    }
+    digest
+}
+
+/// Full blocks use word loads. In particular, rate 166 is twenty words and
+/// two bytes, without a per-byte loop over the complete rate.
+#[inline]
+fn xor_block(state: &mut [u64; 25], block: &[u8]) {
+    let mut words = block.chunks_exact(8);
+    for (word, bytes) in state.iter_mut().zip(words.by_ref()) {
+        *word ^= u64::from_le_bytes(bytes.try_into().unwrap());
+    }
+    for (i, &byte) in words.remainder().iter().enumerate() {
+        state[block.len() / 8] ^= u64::from(byte) << (8 * i);
+    }
+}
+
+/// Only the first SPONGE-DM block starts at a non-word-aligned offset.
+#[inline]
+fn xor_block_at(state: &mut [u64; 25], block: &[u8], offset: usize) {
+    let displacement = offset % 8;
+    let mut words = block.chunks_exact(8);
+    for (index, bytes) in words.by_ref().enumerate() {
+        let word = u64::from_le_bytes(bytes.try_into().unwrap());
+        state[offset / 8 + index] ^= word << (8 * displacement);
+        if displacement != 0 {
+            state[offset / 8 + index + 1] ^= word >> (64 - 8 * displacement);
+        }
+    }
+    let tail_offset = offset + block.len() / 8 * 8;
+    for (index, &byte) in words.remainder().iter().enumerate() {
+        let position = tail_offset + index;
+        state[position / 8] ^= u64::from(byte) << (8 * (position % 8));
     }
 }
 
@@ -125,7 +350,15 @@ impl BackendClosure for LeafJob<'_> {
                 (LeafMode::FixedMd, _) => engine.fixed_md(inputs, digests.len()),
                 (LeafMode::Abr3, 1) => [engine.abr_single(inputs[0]); 2],
                 (LeafMode::Abr3, _) => engine.abr3(inputs, digests.len()),
-                (LeafMode::Standard | LeafMode::T253, _) => {
+                (
+                    LeafMode::Standard
+                    | LeafMode::T253
+                    | LeafMode::AbrWide
+                    | LeafMode::T277
+                    | LeafMode::Shake128
+                    | LeafMode::SpongeDm272,
+                    _,
+                ) => {
                     unreachable!("unsupported SHA3 research mode")
                 }
             };
@@ -532,6 +765,125 @@ fn copy_available(output: &mut [u8], input: &[u8], offset: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Deliberately bytewise and materialized: independent of the production
+    /// packing, streaming, parallel schedule and prefix boundary handling.
+    fn sponge_reference(input: &[u8], dm: bool) -> Digest {
+        let rate = if dm { 166 } else { 168 };
+        let mut padded = Vec::new();
+        if dm {
+            padded.extend_from_slice(&prefix(4, 80));
+        }
+        padded.extend_from_slice(input);
+        let suffix_at = padded.len();
+        padded.resize((padded.len() / rate + 1) * rate, 0);
+        padded[suffix_at] = if dm { 1 } else { 0x1f };
+        *padded.last_mut().unwrap() |= 0x80;
+        let mut state = [0; 25];
+        for block in padded.chunks_exact(rate) {
+            for (position, &byte) in block.iter().enumerate() {
+                state[position / 8] ^= u64::from(byte) << (8 * (position % 8));
+            }
+            let before = state;
+            keccak::Keccak::new().with_f1600(|permute| permute(&mut state));
+            if dm {
+                for position in 0..25 {
+                    state[position] ^= before[position];
+                }
+            }
+        }
+        core::array::from_fn(|i| (state[i / 8] >> (8 * (i % 8))) as u8)
+    }
+
+    fn shake_reference(input: &[u8]) -> Digest {
+        use sha3::digest::{ExtendableOutput, Update, XofReader};
+        let mut hasher = sha3::Shake128::default();
+        hasher.update(input);
+        let mut digest = [0; 32];
+        hasher.finalize_xof().read(&mut digest);
+        digest
+    }
+
+    #[test]
+    fn sponge_scalar_counts_and_padding_match_independent_references() {
+        assert_eq!(SPONGE_DM_PREFIX, prefix(4, 80));
+        let widths = (0..=512).chain([1024, 4096, 16_384, 65_536]);
+        for width in widths {
+            let input: Vec<u8> = (0..width).map(|i| (i * 177 + i / 13 + 19) as u8).collect();
+            let mut shake = [0; 32];
+            let mut dm = [0; 32];
+            let mut shake_calls = 0;
+            let mut dm_calls = 0;
+            keccak::Keccak::new().with_f1600(|permute| {
+                shake = sponge_single::<168, false>(&input, |state| {
+                    shake_calls += 1;
+                    permute(state);
+                });
+                dm = sponge_single::<166, true>(&input, |state| {
+                    dm_calls += 1;
+                    permute(state);
+                });
+            });
+            assert_eq!(shake, shake_reference(&input), "SHAKE128 width {width}");
+            assert_eq!(
+                shake,
+                sponge_reference(&input, false),
+                "SHAKE128 width {width}"
+            );
+            assert_eq!(
+                dm,
+                sponge_reference(&input, true),
+                "SPONGE-DM272 width {width}"
+            );
+            assert_eq!(shake_calls, width / 168 + 1);
+            assert_eq!(dm_calls, (width + 17) / 166 + 1);
+            if width > 0 {
+                let shake_plan = LeafPlan::new::<Sha3_256>(LeafMode::Shake128, width).unwrap();
+                let dm_plan = LeafPlan::new::<Sha3_256>(LeafMode::SpongeDm272, width).unwrap();
+                assert_eq!(shake_plan.native_calls::<Sha3_256>(), shake_calls as u64);
+                assert_eq!(dm_plan.native_calls::<Sha3_256>(), dm_calls as u64);
+                assert_eq!(shake_plan.hash::<Sha3_256>(&input), shake);
+                assert_eq!(dm_plan.hash::<Sha3_256>(&input), dm);
+            }
+        }
+    }
+
+    #[test]
+    fn sponge_parallel_rows_and_all_benchmark_widths_match_scalar_reference() {
+        let mut widths = vec![
+            1, 7, 8, 9, 147, 148, 149, 150, 165, 166, 167, 168, 169, 313, 314, 315, 316, 331, 332,
+            333, 334, 335, 336, 337,
+        ];
+        widths.extend((0..=14).map(|log| 4 << log));
+        widths.sort_unstable();
+        widths.dedup();
+        for mode in [LeafMode::Shake128, LeafMode::SpongeDm272] {
+            for &width in &widths {
+                let input: Vec<u8> = (0..width * 5)
+                    .map(|i| (i * 97 + i / width * 23 + i / 43) as u8)
+                    .collect();
+                let plan = LeafPlan::new::<Sha3_256>(mode, width).unwrap();
+                let expected: Vec<Digest> = input
+                    .chunks_exact(width)
+                    .map(|row| sponge_reference(row, mode == LeafMode::SpongeDm272))
+                    .collect();
+                for rows in [0, 1, 2, 3, 5] {
+                    let mut actual = vec![[0; 32]; rows];
+                    plan.hash_many::<Sha3_256>(&input[..rows * width], &mut actual);
+                    assert_eq!(
+                        actual,
+                        expected[..rows],
+                        "{mode:?} width {width}, rows {rows}"
+                    );
+                }
+                // Both modes must consume the last byte even across a rate
+                // boundary, rather than accidentally dropping a short tail.
+                let mut altered = input[..width].to_vec();
+                altered[width - 1] ^= 0x80;
+                assert_ne!(plan.hash::<Sha3_256>(&altered), expected[0]);
+            }
+        }
+    }
 
     #[test]
     fn direct_oracles_match_standard_sha3_encoding() {

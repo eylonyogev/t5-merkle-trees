@@ -1,0 +1,79 @@
+{
+  "started_utc": "2026-09-28T13:58:56Z",
+  "configuration": {
+    "output": "lowcall-n20",
+    "total_logs": "20",
+    "width_logs": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+    "hashes": "sha256,sha3_256,blake3",
+    "ms": 150,
+    "samples": 7,
+    "threads": 4,
+    "cpu_model": "Apple M4 Max; 16 cores; 64 GiB RAM"
+  },
+  "platform": "macOS-15.6.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "cpu_model": "Apple M4 Max; 16 cores; 64 GiB RAM",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: aarch64-apple-darwin\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "git_revision": "30f4a1d2d6bafbbfb7b6cd4c7a165abea556be57",
+  "binary_sha256": "9f4bc789a7d1740eef11fa27d3825866af4a5610535c40bef19d15b9302619a5",
+  "source_sha256": {
+    "src/blake3_simd.rs": "d91fee83629590033281e7184506986f5603ee14ba4d8070040a8d53d1e47b55",
+    "src/experimental/blake3_backend.rs": "ba1f696e17d52c3bb490b92037211fdc62899fd0086061cb6c792ee163735d92",
+    "src/experimental/sha256_backend.rs": "500e8581d957e557ebff2e64daabf7998d257f33a5d8b231e5da1f5222428bb7",
+    "src/experimental/sha3_backend.rs": "df8c3c63de534369e3a96e4ac7c42d04da310976ad4c93ed31c328891a6daca4",
+    "src/experimental/wide.rs": "295c56ce628d592a07f52bea46e092a0e0028e9935bcf4d75673fb893602d286",
+    "src/experimental.rs": "d5746b9e8d50b0c9d718f57a03e4ec3689d4324fadc1a3c5f2b79328627502e6",
+    "src/hash.rs": "bd2cade0e078f984f9fa422705dc4e33a9e444dd74a1b80069ef812011c0223f",
+    "src/lib.rs": "f568f254fe9bd2ecabb5e884659153ee6f9e55aad92c819bb92e436fcf1097d8",
+    "src/optimized.rs": "caeebe956ea05b3a395862e86a6e07899690c002de2a091a63d16f13c3cb080c",
+    "src/optimized_hash.rs": "07703b1e5110deee0f300a70fd6812c18aa3a584cc52eb633dbe3d89d9090c95",
+    "src/sha256_simd.rs": "d54712ea61b02e2c0df53edbe5d9d04d7315590b4129af121160307286a79245",
+    "examples/perf_sweep.rs": "1b9e09ce2d75197c6d6cf88171722b883e4732d9208d765bc0b0f5a033579d97",
+    "Cargo.toml": "2c893451c8c19d462cd0b856f75b199ceb8e59aa4aa2c84e4f04b91642dbece6",
+    "Cargo.lock": "43abcd41c3338cd7b2fb5a6918609a46153119642b68b4865e1010f6884d807a"
+  },
+  "rustflags_environment": "",
+  "protocol": "Sequential backend processes; each contains fixed-order cases. Fresh commit includes allocation/drop. Verify includes complete leaf and path. Input/proof preparation outside timing. Batch medians and p10/p90 are not confidence intervals.",
+  "commands": [
+    {
+      "executable": "/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/target/release/examples/perf_sweep",
+      "environment": {
+        "RAYON_NUM_THREADS": "4",
+        "MERKLE_HASHES": "sha256",
+        "MERKLE_SCHEMES": "standard,t253,abr-wide",
+        "MERKLE_TOTAL_LOGS": "20",
+        "MERKLE_WIDTH_LOGS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+        "MERKLE_OPERATIONS": "commit,verify",
+        "MERKLE_SWEEP_MS": "150",
+        "MERKLE_SWEEP_SAMPLES": "7"
+      }
+    },
+    {
+      "executable": "/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/target/release/examples/perf_sweep",
+      "environment": {
+        "RAYON_NUM_THREADS": "4",
+        "MERKLE_HASHES": "sha3_256",
+        "MERKLE_SCHEMES": "standard,shake128,sponge-dm272",
+        "MERKLE_TOTAL_LOGS": "20",
+        "MERKLE_WIDTH_LOGS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+        "MERKLE_OPERATIONS": "commit,verify",
+        "MERKLE_SWEEP_MS": "150",
+        "MERKLE_SWEEP_SAMPLES": "7"
+      }
+    },
+    {
+      "executable": "/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/target/release/examples/perf_sweep",
+      "environment": {
+        "RAYON_NUM_THREADS": "4",
+        "MERKLE_HASHES": "blake3",
+        "MERKLE_SCHEMES": "standard,t8,abr-wide,t277",
+        "MERKLE_TOTAL_LOGS": "20",
+        "MERKLE_WIDTH_LOGS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+        "MERKLE_OPERATIONS": "commit,verify",
+        "MERKLE_SWEEP_MS": "150",
+        "MERKLE_SWEEP_SAMPLES": "7"
+      }
+    }
+  ],
+  "finished_utc": "2026-09-28T13:59:43Z"
+}

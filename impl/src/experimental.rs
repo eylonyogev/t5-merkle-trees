@@ -23,6 +23,7 @@ use sha3::Digest as _;
 mod blake3_backend;
 mod sha256_backend;
 mod sha3_backend;
+mod wide;
 
 #[cfg(test)]
 use blake3_backend::blake3_counter;
@@ -44,16 +45,29 @@ pub enum LeafMode {
     Abr3,
     /// SHA-256-only, 253-byte restriction of T8 with genuine role separation.
     T253,
+    /// Widened height-three ABR: SHA-256 uses 95-byte oracles, BLAKE3 103.
+    /// This is a research adaptation with a provisional ideal-function proof.
+    AbrWide,
+    /// BLAKE3-only, counter-payload T gadget with a fixed-width MD tail.
+    T277,
+    /// SHA3 backend: standard SHAKE128 with a 32-byte output.
+    Shake128,
+    /// SHA3 backend: full-round SPONGE-DM with 272-bit capacity and 17-byte tag.
+    SpongeDm272,
 }
 
 impl LeafMode {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 10] = [
         Self::Standard,
         Self::FixedMd,
         Self::T5,
         Self::T8,
         Self::Abr3,
         Self::T253,
+        Self::AbrWide,
+        Self::T277,
+        Self::Shake128,
+        Self::SpongeDm272,
     ];
 
     pub const fn name(self) -> &'static str {
@@ -64,6 +78,10 @@ impl LeafMode {
             Self::T8 => "t8",
             Self::Abr3 => "abr3",
             Self::T253 => "t253",
+            Self::AbrWide => "abr-wide",
+            Self::T277 => "t277",
+            Self::Shake128 => "shake128",
+            Self::SpongeDm272 => "sponge-dm272",
         }
     }
 }
@@ -120,18 +138,37 @@ pub trait ResearchHash: OptimizedHash {
     fn hash_t253(_input: &[u8], _stages: usize) -> Digest {
         unreachable!("T253 is supported only by SHA-256")
     }
+
+    /// Payload capacity of the backend's one-call wide research oracle.
+    fn wide_oracle_bytes(_mode: LeafMode) -> Option<usize> {
+        None
+    }
+
+    fn supports_sponge_modes() -> bool {
+        false
+    }
+
+    fn hash_wide(_plan: &LeafPlan, _input: &[u8]) -> Digest {
+        unreachable!("unsupported wide research mode")
+    }
+
+    fn hash_sponge(_plan: &LeafPlan, _input: &[u8]) -> Digest {
+        unreachable!("unsupported sponge research mode")
+    }
 }
 
 /// Width-dependent parameters prepared once, before hashing matrix rows.
 ///
 /// Hashing uses bounded stack scratch and no allocation. The plan is reusable
-/// across backends except that T253 is accepted only for SHA-256.
+/// across backends for the original generic modes. Backend-specific plans
+/// reject unsupported or differently sized adapters at the hashing boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LeafPlan {
     mode: LeafMode,
     leaf_bytes: usize,
     stages: usize,
     remainder: usize,
+    wide: Option<wide::WidePlan>,
 }
 
 impl LeafPlan {
@@ -142,6 +179,24 @@ impl LeafPlan {
         if mode == LeafMode::T253 && !H::supports_t253() {
             return Err(Error::UnsupportedMode);
         }
+        let wide = match mode {
+            LeafMode::AbrWide | LeafMode::T277 => {
+                let bytes = H::wide_oracle_bytes(mode).ok_or(Error::UnsupportedMode)?;
+                if leaf_bytes > isize::MAX as usize {
+                    return Err(Error::InvalidLeafSize);
+                }
+                let kind = if mode == LeafMode::AbrWide {
+                    wide::WideKind::Abr3
+                } else {
+                    wide::WideKind::T
+                };
+                Some(wide::WidePlan::new(kind, leaf_bytes, bytes))
+            }
+            LeafMode::Shake128 | LeafMode::SpongeDm272 if !H::supports_sponge_modes() => {
+                return Err(Error::UnsupportedMode);
+            }
+            _ => None,
+        };
         let mut remainder = 0;
         let stages = match mode {
             LeafMode::Standard => 0,
@@ -159,12 +214,14 @@ impl LeafPlan {
                 remainder = (leaf_bytes - 32) % 221;
                 stages
             }
+            LeafMode::AbrWide | LeafMode::T277 | LeafMode::Shake128 | LeafMode::SpongeDm272 => 0,
         };
         Ok(Self {
             mode,
             leaf_bytes,
             stages,
             remainder,
+            wide,
         })
     }
 
@@ -177,8 +234,8 @@ impl LeafPlan {
     }
 
     /// Calls to the selected abstract oracle, before its concrete cost.
-    /// Standard (including T253's short-input fallback) reports zero because
-    /// it does not use the experimental oracle. Zero does not mean free: use
+    /// Standard, SHAKE/SPONGE-DM and T253's short-input fallback report zero
+    /// because they do not use a gadget oracle. Zero does not mean free: use
     /// `native_calls` to count its compression/permutation work.
     /// T253 counts its native compression invocations, including its MD tail.
     pub fn abstract_calls(&self) -> u64 {
@@ -189,25 +246,53 @@ impl LeafPlan {
             LeafMode::Abr3 => 7 * self.stages as u64,
             LeafMode::T253 if self.stages == 0 => 0,
             LeafMode::T253 => 3 * self.stages as u64 + self.remainder.div_ceil(64) as u64,
+            LeafMode::AbrWide | LeafMode::T277 => self.wide.as_ref().unwrap().calls(),
+            LeafMode::Shake128 | LeafMode::SpongeDm272 => 0,
         }
     }
 
     /// Actual compression/permutation calls, including concrete oracle padding.
     pub fn native_calls<H: ResearchHash>(&self) -> u64 {
+        self.assert_backend::<H>();
         match self.mode {
             LeafMode::Standard => H::standard_leaf_calls(self.leaf_bytes),
             LeafMode::FixedMd | LeafMode::T8 => self.abstract_calls() * H::oracle3_calls(),
             LeafMode::T5 | LeafMode::Abr3 => self.abstract_calls() * H::oracle2_calls(),
             LeafMode::T253 if self.stages == 0 => H::standard_leaf_calls(self.leaf_bytes),
             LeafMode::T253 => self.abstract_calls(),
+            LeafMode::AbrWide | LeafMode::T277 => self.abstract_calls(),
+            LeafMode::Shake128 => (self.leaf_bytes / 168) as u64 + 1,
+            LeafMode::SpongeDm272 => {
+                // Avoid overflowing for widths close to usize::MAX.
+                (self.leaf_bytes / 166) as u64 + ((self.leaf_bytes % 166 + 17) / 166) as u64 + 1
+            }
         }
+    }
+
+    fn assert_backend<H: ResearchHash>(&self) {
+        assert!(
+            self.mode != LeafMode::T253 || H::supports_t253(),
+            "T253 requires SHA-256"
+        );
+        if let Some(plan) = self.wide {
+            assert_eq!(
+                H::wide_oracle_bytes(self.mode),
+                Some(plan.oracle_bytes),
+                "wide plan requires its original backend"
+            );
+        }
+        assert!(
+            !matches!(self.mode, LeafMode::Shake128 | LeafMode::SpongeDm272)
+                || H::supports_sponge_modes(),
+            "sponge mode requires the SHA3 backend"
+        );
     }
 
     /// Hash exactly one record of the planned public width.
     ///
     /// # Panics
-    /// Panics if the input has another width, or a T253 plan is used with a
-    /// backend other than SHA-256.
+    /// Panics if the input has another width or the backend does not support
+    /// the planned mode and its concrete oracle capacity.
     #[inline]
     pub fn hash<H: ResearchHash>(&self, input: &[u8]) -> Digest {
         assert_eq!(
@@ -215,6 +300,7 @@ impl LeafPlan {
             self.leaf_bytes,
             "leaf must match its planned width"
         );
+        self.assert_backend::<H>();
         H::hash_leaf_planned(self, input)
     }
 
@@ -230,6 +316,8 @@ impl LeafPlan {
                 assert!(H::supports_t253(), "T253 requires SHA-256");
                 H::hash_t253(input, self.stages)
             }
+            LeafMode::AbrWide | LeafMode::T277 => H::hash_wide(self, input),
+            LeafMode::Shake128 | LeafMode::SpongeDm272 => H::hash_sponge(self, input),
         }
     }
 
@@ -238,18 +326,15 @@ impl LeafPlan {
     /// supported by the selected CPU.
     ///
     /// # Panics
-    /// Panics if the input and output shapes disagree, or a T253 plan is used
-    /// with a backend other than SHA-256.
+    /// Panics if the input and output shapes disagree or the backend does not
+    /// support the planned mode and its concrete oracle capacity.
     pub fn hash_many<H: ResearchHash>(&self, input: &[u8], output: &mut [Digest]) {
         assert_eq!(
             Some(input.len()),
             output.len().checked_mul(self.leaf_bytes),
             "leaf batch must match its planned shape"
         );
-        assert!(
-            self.mode != LeafMode::T253 || H::supports_t253(),
-            "T253 requires SHA-256"
-        );
+        self.assert_backend::<H>();
         if self.mode == LeafMode::Standard {
             H::hash_leaves_fast(input, self.leaf_bytes, output);
         } else {
@@ -609,10 +694,13 @@ mod tests {
             288, 289, 351, 352, 353, 480, 481, 512, 672, 673, 1024, 4096,
         ] {
             let input = data(width);
-            for mode in LeafMode::ALL
-                .into_iter()
-                .filter(|&mode| mode != LeafMode::T253)
-            {
+            for mode in [
+                LeafMode::Standard,
+                LeafMode::FixedMd,
+                LeafMode::T5,
+                LeafMode::T8,
+                LeafMode::Abr3,
+            ] {
                 let plan = LeafPlan::new::<H>(mode, width).unwrap();
                 assert_eq!(
                     plan.hash::<H>(&input),
@@ -676,10 +764,13 @@ mod tests {
             1, 4, 31, 32, 63, 64, 65, 127, 128, 159, 160, 161, 192, 223, 224, 255, 256, 257, 287,
             288, 289, 351, 352, 353, 479, 480, 481, 511, 512, 672, 673, 1024, 4096,
         ] {
-            for mode in LeafMode::ALL
-                .into_iter()
-                .filter(|&mode| mode != LeafMode::T253)
-            {
+            for mode in [
+                LeafMode::Standard,
+                LeafMode::FixedMd,
+                LeafMode::T5,
+                LeafMode::T8,
+                LeafMode::Abr3,
+            ] {
                 let plan = LeafPlan::new::<Sha3_256>(mode, width).unwrap();
                 for count in [0, 1, 2, 3, 4, 5, 9] {
                     let input = data(count * width);

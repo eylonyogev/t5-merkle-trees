@@ -36,6 +36,39 @@ pub(crate) fn t253(
     t253_portable(left, right, shared, extra)
 }
 
+/// Fused SHA95 ABR3 chain. Returns None on CPUs without the SHA2 extension so
+/// callers can retain the independent portable construction specification.
+pub(crate) fn abr_wide(
+    input: &[u8],
+    stages: usize,
+    tails: usize,
+    md_head: bool,
+) -> Option<[u8; 32]> {
+    #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+    if std::arch::is_aarch64_feature_detected!("sha2") {
+        // SAFETY: runtime feature check; the implementation bounds/pads every
+        // message segment before performing its fixed-width vector accesses.
+        return Some(unsafe { aarch64::abr_wide_rows([input], stages, tails, md_head)[0] });
+    }
+    let _ = (input, stages, tails, md_head);
+    None
+}
+
+pub(crate) fn abr_wide_pair(
+    input: [&[u8]; 2],
+    stages: usize,
+    tails: usize,
+    md_head: bool,
+) -> Option<[[u8; 32]; 2]> {
+    #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+    if std::arch::is_aarch64_feature_detected!("sha2") {
+        // SAFETY: as above, with independent rows in both native lanes.
+        return Some(unsafe { aarch64::abr_wide_rows(input, stages, tails, md_head) });
+    }
+    let _ = (input, stages, tails, md_head);
+    None
+}
+
 fn t253_portable(
     left: &[u8; 95],
     right: &[u8; 95],
@@ -208,6 +241,185 @@ mod aarch64 {
                 );
             }
             digest
+        }
+    }
+
+    type State = [uint32x4_t; 2];
+
+    /// Load role||extra31 without building a temporary CV: the ignored byte at
+    /// bytes[0] belongs to the preceding message field and is replaced by role.
+    #[inline(always)]
+    unsafe fn wide_cv(role: u8, bytes: &[u8]) -> State {
+        unsafe {
+            let first = load_be(bytes);
+            [
+                vsetq_lane_u32::<0>(
+                    (vgetq_lane_u32::<0>(first) & 0x00ff_ffff) | ((role as u32) << 24),
+                    first,
+                ),
+                load_be(&bytes[16..]),
+            ]
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn digest_words(bytes: &[u8]) -> State {
+        unsafe { [load_be(bytes), load_be(&bytes[16..])] }
+    }
+
+    #[inline(always)]
+    unsafe fn internal_words(left: State, right: State, shared: State) -> [uint32x4_t; 4] {
+        unsafe {
+            [
+                veorq_u32(left[0], shared[0]),
+                veorq_u32(left[1], shared[1]),
+                veorq_u32(right[0], shared[0]),
+                veorq_u32(right[1], shared[1]),
+            ]
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn feed_right(hash: State, right: State) -> State {
+        unsafe { [veorq_u32(hash[0], right[0]), veorq_u32(hash[1], right[1])] }
+    }
+
+    /// Six non-root calls, with every independent pair interleaved. All
+    /// intermediate words remain in native SHA registers, not byte digests.
+    #[inline(always)]
+    unsafe fn abr_prepare(input: &[u8]) -> (State, State) {
+        unsafe {
+            let bottom = |start: usize| {
+                let states = core::array::from_fn(|i| {
+                    wide_cv(0xd0 + (start + i) as u8, &input[(start + i) * 95 + 63..])
+                });
+                let words = core::array::from_fn::<_, 2, _>(|i| {
+                    core::array::from_fn(|j| load_be(&input[(start + i) * 95 + j * 16..]))
+                });
+                compress_vectors(states, words)
+            };
+            let ab = bottom(0);
+            let cd = bottom(2);
+            let middle = compress_vectors(
+                [wide_cv(0xd4, &input[411..]), wide_cv(0xd5, &input[474..])],
+                [
+                    internal_words(ab[0], ab[1], digest_words(&input[380..])),
+                    internal_words(cd[0], cd[1], digest_words(&input[443..])),
+                ],
+            );
+            (feed_right(middle[0], ab[1]), feed_right(middle[1], cd[1]))
+        }
+    }
+
+    /// N is one or two. Bottom/middle branches always use two-way SHA2;
+    /// dependent roots and MD tails additionally pair neighboring rows.
+    #[target_feature(enable = "sha2")]
+    pub(super) unsafe fn abr_wide_rows<const N: usize>(
+        input: [&[u8]; N],
+        stages: usize,
+        tails: usize,
+        md_head: bool,
+    ) -> [[u8; 32]; N] {
+        unsafe {
+            let zero = vdupq_n_u32(0);
+            let mut state = [[zero; 2]; N];
+            let mut offset = 0;
+            if md_head {
+                let mut padded = [[0; 95]; N];
+                for i in 0..N {
+                    if input[i].len() < 95 {
+                        padded[i][..input[i].len()].copy_from_slice(input[i]);
+                    }
+                }
+                let heads: [&[u8]; N] = core::array::from_fn(|i| {
+                    if input[i].len() >= 95 {
+                        &input[i][..95]
+                    } else {
+                        &padded[i]
+                    }
+                });
+                let states = core::array::from_fn(|i| wide_cv(0xd7, &heads[i][63..]));
+                let words = core::array::from_fn(|i| {
+                    core::array::from_fn(|j| load_be(&heads[i][j * 16..]))
+                });
+                state = compress_vectors(states, words);
+                offset = 95;
+            }
+            let mut padded = [[0; 569]; N];
+            for stage in 0..stages {
+                let first = stage == 0;
+                let capacity = if first { 569 } else { 537 };
+                for i in 0..N {
+                    let remaining = input[i].len().saturating_sub(offset);
+                    if remaining > 0 && remaining < capacity {
+                        padded[i][..remaining].copy_from_slice(&input[i][offset..]);
+                    }
+                }
+                let messages: [&[u8]; N] = core::array::from_fn(|i| {
+                    let remaining = input[i].len().saturating_sub(offset);
+                    if remaining >= capacity {
+                        &input[i][offset..offset + capacity]
+                    } else {
+                        &padded[i][..capacity]
+                    }
+                });
+                let prepared: [(State, State); N] =
+                    core::array::from_fn(|i| abr_prepare(messages[i]));
+                let shared: [State; N] = core::array::from_fn(|i| {
+                    if first {
+                        digest_words(&messages[i][506..])
+                    } else {
+                        state[i]
+                    }
+                });
+                let states: [State; N] = core::array::from_fn(|i| {
+                    wide_cv(0xd6, &messages[i][if first { 537 } else { 505 }..])
+                });
+                let words = core::array::from_fn(|i| {
+                    internal_words(prepared[i].0, prepared[i].1, shared[i])
+                });
+                let root = compress_vectors(states, words);
+                state = core::array::from_fn(|i| feed_right(root[i], prepared[i].1));
+                offset += capacity;
+            }
+            for _ in 0..tails {
+                let mut padded = [[0; 63]; N];
+                for i in 0..N {
+                    let remaining = input[i].len().saturating_sub(offset);
+                    if remaining > 0 && remaining < 63 {
+                        padded[i][..remaining].copy_from_slice(&input[i][offset..]);
+                    }
+                }
+                let messages: [&[u8]; N] = core::array::from_fn(|i| {
+                    let remaining = input[i].len().saturating_sub(offset);
+                    if remaining >= 63 {
+                        &input[i][offset..offset + 63]
+                    } else {
+                        &padded[i]
+                    }
+                });
+                let states = core::array::from_fn(|i| wide_cv(0xd7, &messages[i][31..]));
+                let words = core::array::from_fn(|i| {
+                    [
+                        state[i][0],
+                        state[i][1],
+                        load_be(messages[i]),
+                        load_be(&messages[i][16..]),
+                    ]
+                });
+                state = compress_vectors(states, words);
+                offset += 63;
+            }
+            core::array::from_fn(|i| {
+                let mut result = [0; 32];
+                for part in 0..2 {
+                    vst1q_u8(
+                        result[part * 16..].as_mut_ptr(),
+                        vrev32q_u8(vreinterpretq_u8_u32(state[i][part])),
+                    );
+                }
+                result
+            })
         }
     }
 

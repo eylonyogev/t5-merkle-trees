@@ -6,6 +6,7 @@ t5-trees.synctex.gz
 t5-trees.fdb_latexmk
 t5-trees.fls
 impl/target/
+impl/scripts/__pycache__/
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

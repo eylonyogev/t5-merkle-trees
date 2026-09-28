@@ -1,5 +1,21 @@
 use super::*;
-use crate::blake3_simd::{compress_many, compress_one};
+use crate::blake3_simd::{compress_103_many, compress_103_one, compress_many, compress_one};
+
+struct WideBlake3;
+
+impl wide::WideOracle<103> for WideBlake3 {
+    #[inline]
+    fn one(role: u8, input: &[u8; 103]) -> Digest {
+        compress_103_one(role, input)
+    }
+
+    #[inline]
+    fn many<const N: usize>(roles: [u8; N], inputs: &[[u8; 103]; N]) -> [Digest; N] {
+        let mut output = [[0; 32]; N];
+        compress_103_many(&roles, inputs, &mut output);
+        output
+    }
+}
 
 const FLAGS: u8 = 16 | 1 | 2; // KEYED_HASH | CHUNK_START | CHUNK_END, no ROOT.
 
@@ -18,6 +34,23 @@ fn blake3_oracle(arity: u8, role: u64, key: &Digest, block: &[u8; 64]) -> Digest
 
 impl ResearchHash for Blake3 {
     const LEAF_BATCH_SIZE: usize = 4;
+
+    fn wide_oracle_bytes(mode: LeafMode) -> Option<usize> {
+        matches!(mode, LeafMode::AbrWide | LeafMode::T277).then_some(103)
+    }
+
+    fn hash_wide(plan: &LeafPlan, input: &[u8]) -> Digest {
+        let wide_plan = plan.wide.as_ref().expect("wide BLAKE3 plan");
+        if let Some(result) = crate::blake3_simd::wide_one(
+            input,
+            wide_plan.kind == wide::WideKind::Abr3,
+            wide_plan.stages,
+            wide_plan.tails,
+        ) {
+            return result;
+        }
+        wide::hash::<WideBlake3, 103>(wide_plan, input)
+    }
 
     #[inline]
     fn oracle2(role: u64, input: &[u8; 64]) -> Digest {
@@ -59,6 +92,28 @@ impl ResearchHash for Blake3 {
 
     fn hash_leaves_planned(plan: &LeafPlan, input: &[u8], output: &mut [Digest]) {
         let width = plan.leaf_bytes();
+        if let Some(wide_plan) = &plan.wide {
+            for (rows, digests) in input
+                .chunks(width.saturating_mul(4))
+                .zip(output.chunks_mut(4))
+            {
+                if digests.len() == 4 {
+                    let inputs = core::array::from_fn(|i| &rows[i * width..(i + 1) * width]);
+                    if let Some(result) = crate::blake3_simd::wide_four(
+                        inputs,
+                        wide_plan.kind == wide::WideKind::Abr3,
+                        wide_plan.stages,
+                        wide_plan.tails,
+                        wide_plan.md_head,
+                    ) {
+                        digests.copy_from_slice(&result);
+                        continue;
+                    }
+                }
+                wide::hash_many::<WideBlake3, 103>(wide_plan, rows, digests);
+            }
+            return;
+        }
         if plan.mode() == LeafMode::Standard {
             Self::hash_leaves_fast(input, width, output);
             return;
@@ -82,7 +137,12 @@ impl ResearchHash for Blake3 {
                 LeafMode::T5 => chained_many::<160>(inputs),
                 LeafMode::T8 => chained_many::<256>(inputs),
                 LeafMode::Abr3 => chained_many::<352>(inputs),
-                LeafMode::Standard | LeafMode::T253 => unreachable!(),
+                LeafMode::Standard
+                | LeafMode::T253
+                | LeafMode::AbrWide
+                | LeafMode::T277
+                | LeafMode::Shake128
+                | LeafMode::SpongeDm272 => unreachable!(),
             };
             digests.copy_from_slice(&result[..digests.len()]);
         }
@@ -398,6 +458,61 @@ fn pipeline<const BYTES: usize>(input: &[u8], stages: usize) -> Digest {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct ScalarWideBlake3;
+
+    impl wide::WideOracle<103> for ScalarWideBlake3 {
+        fn one(role: u8, input: &[u8; 103]) -> Digest {
+            // Use the independently tested raw adapter while disabling every
+            // batching hook, so this also checks the lookahead scheduling.
+            compress_103_one(role, input)
+        }
+    }
+
+    #[test]
+    fn empty_wide_batch_accepts_a_large_public_width() {
+        for mode in [LeafMode::T277, LeafMode::AbrWide] {
+            let plan = LeafPlan::new::<Blake3>(mode, 1usize << (usize::BITS - 2)).unwrap();
+            plan.hash_many::<Blake3>(&[], &mut []);
+        }
+    }
+
+    #[test]
+    fn wide_fused_rows_and_verification_match_scalar_schedule() {
+        let mut widths = vec![
+            1, 4, 32, 64, 70, 71, 72, 95, 96, 102, 103, 104, 173, 174, 175, 244, 245, 246, 276,
+            277, 278, 348, 511, 512, 513, 592, 593, 594, 624, 625, 626, 1217, 1218, 1219, 1811,
+            2047, 2048, 2049, 4096, 16384, 65536,
+        ];
+        // Every boundary through several full and partial gadget windows,
+        // including widths where minimum-call planning switches to MD only.
+        for step in [245, 593] {
+            for stage in 1..=12 {
+                let edge = 32 + stage * step;
+                widths.extend([edge - 1, edge, edge + 1]);
+            }
+        }
+        widths.sort_unstable();
+        widths.dedup();
+        for mode in [LeafMode::T277, LeafMode::AbrWide] {
+            for width in &widths {
+                let plan = LeafPlan::new::<Blake3>(mode, *width).unwrap();
+                let wide_plan = plan.wide.as_ref().unwrap();
+                for count in [0, 1, 2, 3, 4, 5, 7, 8, 9] {
+                    let input: Vec<u8> = (0..width * count)
+                        .map(|i| (i * 131 + i / 19) as u8)
+                        .collect();
+                    let mut output = vec![[0; 32]; count];
+                    plan.hash_many::<Blake3>(&input, &mut output);
+                    for (row, got) in input.chunks_exact(*width).zip(output) {
+                        let expected = wide::hash::<ScalarWideBlake3, 103>(wide_plan, row);
+                        assert_eq!(got, expected, "mode={mode:?}, width={width}, rows={count}");
+                        assert_eq!(plan.hash::<Blake3>(row), expected);
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn row_batches_and_stage_pipeline_preserve_all_encodings() {

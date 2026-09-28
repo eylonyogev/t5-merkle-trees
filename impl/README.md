@@ -4,10 +4,13 @@
 adds SIMD batching, coarser parallel scheduling, contiguous storage and explicit
 whole-leaf compression modes. `LeafMode::Standard` preserves baseline roots;
 T5, T8, ABR3 and SHA-256 T253 are separate experimental constructions.
+New least-call modes add widened ABR3 for SHA-256/BLAKE3, BLAKE3 T277,
+and SHAKE128/SPONGE-DM272 leaves under the SHA3 backend.
 Start with [EXPERIMENTS.md](EXPERIMENTS.md),
 [OPTIMIZED_BENCHMARKS.md](OPTIMIZED_BENCHMARKS.md), and
-[NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) for the implementation, benchmarks and
-latest measured results. [RESULTS.md](RESULTS.md) records the initial comparison.
+[LOWCALL_RESULTS.md](LOWCALL_RESULTS.md) for the implementation, benchmarks and
+latest measured results. [NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) and
+[RESULTS.md](RESULTS.md) preserve the earlier comparisons.
 
 ## Preserved reference implementation
 

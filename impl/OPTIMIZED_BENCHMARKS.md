@@ -47,7 +47,7 @@ Useful controls:
 | `MERKLE_TOTAL_LOGS` | `20` | Comma-separated exponents for element count; 0–26 accepted for small smoke runs |
 | `MERKLE_WIDTH_LOGS` | `0,4,6,8,10,14` | Comma-separated exponents for elements per leaf, 0–14 |
 | `MERKLE_HASHES` | `sha256,sha3_256,blake3` | Hash backend filter |
-| `MERKLE_SCHEMES` | All | `baseline,standard,fixed-md,t5,t8,abr3,t253` |
+| `MERKLE_SCHEMES` | All | `baseline,standard,fixed-md,t5,t8,abr3,t253,abr-wide,t277,shake128,sponge-dm272` |
 | `MERKLE_OPERATIONS` | `commit,verify` | Operation filter |
 | `MERKLE_SWEEP_MS` | `80` | Target measured milliseconds per operation |
 | `MERKLE_SWEEP_SAMPLES` | `5` | Number of batches; minimum five |
@@ -104,6 +104,19 @@ CSV includes two distinct work counts:
   performs no work. The common upper tree is excluded from this column.
 
 Counts are a documented analytical model, not hardware performance counters.
+
+The new `abr-wide` mode is supported by SHA-256 and BLAKE3; `t277` by
+BLAKE3; `shake128` and `sponge-dm272` by the SHA3 backend. Each still uses
+the original binary parent function for its backend. New public-width plans
+are prepared outside hashing, just like the existing leaf plans. Unsupported
+mode/backend pairs are rejected or skipped by the benchmark harness.
+
+For the selected least-call candidates, `scripts/run_lowcall.py` runs backend
+processes sequentially and records source/binary SHA-256 fingerprints, compiler
+version, environment, exact commands and raw batch timing percentiles alongside
+each CSV. It never overlaps benchmark jobs. See [LOWCALL_RESULTS.md](LOWCALL_RESULTS.md)
+for the measured implementation and reproduction commands.
+
 SIMD batching changes elapsed time without changing these logical counts.
 Calls to different primitives, or different roles within a construction, need
 not cost the same. In particular, fewer calls to an abstract wide compression

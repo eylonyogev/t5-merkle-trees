@@ -1,0 +1,454 @@
+Validation UTC: 2026-09-28T14:07:39.859369+00:00
+
+$ cargo fmt --manifest-path impl/Cargo.toml --check
+
+Exit: 0
+
+$ cargo test --locked --offline --manifest-path impl/Cargo.toml
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.57s
+     Running unittests src/lib.rs (impl/target/debug/deps/binary_merkle_tree-8d67823eb4f24bda)
+
+running 40 tests
+test experimental::blake3_backend::tests::empty_wide_batch_accepts_a_large_public_width ... ok
+test blake3_simd::tests::mismatched_batch_shape_is_rejected - should panic ... ok
+test experimental::sha256_backend::tests::direct_two_block_encoding_matches_standard_sha256 ... ok
+test experimental::sha256_backend::tests::wide_role_packing_and_pair_kernel_match_scalar_compression ... ok
+test experimental::sha3_backend::tests::direct_oracles_match_standard_sha3_encoding ... ok
+test experimental::tests::blake3_raw_oracles_match_public_hazmat ... ok
+test experimental::tests::rejects_cross_backend_t253_batch - should panic ... ok
+test experimental::tests::rejects_empty_or_unsupported_plans ... ok
+test experimental::tests::rejects_partial_planned_batch - should panic ... ok
+test experimental::tests::rejects_wrong_width - should panic ... ok
+test experimental::tests::independent_oracle_pairs_preserve_inputs_and_domain_roles ... ok
+test experimental::tests::primitive_counts_and_t253_planning ... ok
+test blake3_simd::tests::wide_batches_and_partial_lanes_match_upstream ... ok
+test blake3_simd::tests::wide_oracle_uses_every_payload_and_role_byte ... ok
+test blake3_simd::tests::independent_messages_match_upstream ... ok
+test experimental::tests::primitive_roles_are_distinct ... ok
+test experimental::tests::sha256_matches_formula ... ok
+test experimental::tests::blake3_matches_formula ... ok
+test experimental::blake3_backend::tests::pipeline_multiple_windows_and_partial_last_stage ... ok
+test optimized_hash::tests::primitive_counts_include_padding_and_chunk_tree ... ok
+test optimized_hash::tests::rejects_zero_width - should panic ... ok
+test optimized_hash::tests::rejects_odd_children - should panic ... ok
+test optimized_hash::tests::rejects_partial_row - should panic ... ok
+test sha256_simd::tests::fused_t253_matches_three_independent_compressions ... ok
+test sha256_simd::tests::independent_compressions_match_upstream_for_arbitrary_cvs ... ok
+test experimental::sha256_backend::tests::fused_wide_sha_matches_generic_schedule_at_all_boundaries ... ok
+test experimental::wide::tests::constant_time_planner_matches_exhaustive_schedules ... ok
+test experimental::tests::t253_matches_explicit_layout_and_uses_every_byte ... ok
+test experimental::tests::sha3_matches_formula ... ok
+test experimental::sha3_backend::tests::persistent_batch_and_pipeline_match_scalar_graph_at_stage_boundaries ... ok
+test experimental::wide::tests::every_first_and_chained_gadget_byte_is_consumed ... ok
+test experimental::sha3_backend::tests::sponge_scalar_counts_and_padding_match_independent_references ... ok
+test experimental::sha3_backend::tests::sponge_parallel_rows_and_all_benchmark_widths_match_scalar_reference ... ok
+test optimized_hash::tests::sha256_matches_standard_and_upstream ... ok
+test experimental::blake3_backend::tests::row_batches_and_stage_pipeline_preserve_all_encodings ... ok
+test optimized_hash::tests::blake3_matches_standard_and_upstream ... ok
+test experimental::tests::sha3_batched_records_match_independent_scalar_specification ... ok
+test optimized_hash::tests::sha3_matches_standard_and_upstream ... ok
+test experimental::wide::tests::scheduler_matches_scalar_and_executes_exact_planned_calls ... ok
+test experimental::blake3_backend::tests::wide_fused_rows_and_verification_match_scalar_schedule ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+
+     Running tests/independent.rs (impl/target/debug/deps/independent-c8980d509ed17d48)
+
+running 11 tests
+test rejects_invalid_shapes_and_overflowing_metadata ... ok
+test fixed_external_hash_vectors ... ok
+test plonky3_hash_constructions_have_no_domain_prefix ... ok
+test fixed_external_matrix_vectors ... ok
+test rejects_tampering_and_malformed_proofs ... ok
+test byte_leaves_need_not_be_u32_aligned ... ok
+test hash_padding_and_chunk_boundaries ... ok
+test sha256_matches_recursive_oracle ... ok
+test blake3_matches_recursive_oracle ... ok
+test requested_width_range_is_supported ... ok
+test sha3_matches_recursive_oracle ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/leaf_compatibility.rs (impl/target/debug/deps/leaf_compatibility-d66a2029db5f540b)
+
+running 3 tests
+test blake3_preserves_preoptimization_outputs ... ok
+test sha256_preserves_preoptimization_outputs ... ok
+test sha3_preserves_preoptimization_outputs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/new_constructions.rs (impl/target/debug/deps/new_constructions-a196eb6d8193ed5e)
+
+running 6 tests
+test empty_batches_do_not_overflow_a_large_public_width ... ok
+test counts_match_the_independently_generated_candidate_grid ... ok
+test incompatible_backends_are_rejected ... ok
+test sha256_wide_records ... ok
+test keccak_records ... ok
+test blake3_wide_records ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/optimized.rs (impl/target/debug/deps/optimized-0df4370a1f2c5315)
+
+running 13 tests
+test invalid_shapes_and_overflow_are_rejected_before_allocation ... ok
+test sha256_specific_mode_rejects_other_suites ... ok
+test single_leaf_has_an_empty_proof_and_still_checks_shape ... ok
+test standard_rejects_malformed_and_tampered_openings ... ok
+test recommit_preserves_shape_and_rebuilds_every_layer ... ok
+test requested_matrix_widths_preserve_canonical_encoding ... ok
+test experimental_blake3_openings_and_recommit ... ok
+test experimental_sha256_openings_and_recommit ... ok
+test standard_sha256_preserves_roots_and_all_paths ... ok
+test standard_blake3_preserves_roots_and_all_paths ... ok
+test experimental_sha3_openings_and_recommit ... ok
+test parallel_chunk_boundaries_preserve_paths ... ok
+test standard_sha3_preserves_roots_and_all_paths ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running tests/plonky3.rs (impl/target/debug/deps/plonky3-0a39f93399678d0b)
+
+running 3 tests
+test sha256_roots_paths_and_verifiers_match_plonky3 ... ok
+test blake3_roots_paths_and_verifiers_match_plonky3 ... ok
+test sha3_roots_paths_and_verifiers_match_plonky3 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+   Doc-tests binary_merkle_tree
+
+running 1 test
+test src/lib.rs - (line 17) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.37s; merged doctests compilation took 0.20s
+
+Exit: 0
+
+$ cargo test --locked --offline --manifest-path impl/Cargo.toml --no-default-features
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.85s
+     Running unittests src/lib.rs (impl/target/debug/deps/binary_merkle_tree-4f5efbd14144c391)
+
+running 40 tests
+test experimental::blake3_backend::tests::empty_wide_batch_accepts_a_large_public_width ... ok
+test experimental::sha256_backend::tests::wide_role_packing_and_pair_kernel_match_scalar_compression ... ok
+test experimental::sha256_backend::tests::direct_two_block_encoding_matches_standard_sha256 ... ok
+test blake3_simd::tests::mismatched_batch_shape_is_rejected - should panic ... ok
+test experimental::sha3_backend::tests::direct_oracles_match_standard_sha3_encoding ... ok
+test blake3_simd::tests::wide_batches_and_partial_lanes_match_upstream ... ok
+test blake3_simd::tests::wide_oracle_uses_every_payload_and_role_byte ... ok
+test experimental::tests::blake3_raw_oracles_match_public_hazmat ... ok
+test blake3_simd::tests::independent_messages_match_upstream ... ok
+test experimental::tests::rejects_empty_or_unsupported_plans ... ok
+test experimental::tests::rejects_cross_backend_t253_batch - should panic ... ok
+test experimental::tests::rejects_partial_planned_batch - should panic ... ok
+test experimental::tests::rejects_wrong_width - should panic ... ok
+test experimental::tests::independent_oracle_pairs_preserve_inputs_and_domain_roles ... ok
+test experimental::tests::primitive_counts_and_t253_planning ... ok
+test experimental::tests::primitive_roles_are_distinct ... ok
+test experimental::blake3_backend::tests::pipeline_multiple_windows_and_partial_last_stage ... ok
+test optimized_hash::tests::primitive_counts_include_padding_and_chunk_tree ... ok
+test optimized_hash::tests::rejects_odd_children - should panic ... ok
+test optimized_hash::tests::rejects_partial_row - should panic ... ok
+test optimized_hash::tests::rejects_zero_width - should panic ... ok
+test experimental::tests::blake3_matches_formula ... ok
+test experimental::tests::sha256_matches_formula ... ok
+test sha256_simd::tests::fused_t253_matches_three_independent_compressions ... ok
+test sha256_simd::tests::independent_compressions_match_upstream_for_arbitrary_cvs ... ok
+test experimental::sha256_backend::tests::fused_wide_sha_matches_generic_schedule_at_all_boundaries ... ok
+test experimental::tests::sha3_matches_formula ... ok
+test experimental::wide::tests::constant_time_planner_matches_exhaustive_schedules ... ok
+test experimental::tests::t253_matches_explicit_layout_and_uses_every_byte ... ok
+test experimental::sha3_backend::tests::persistent_batch_and_pipeline_match_scalar_graph_at_stage_boundaries ... ok
+test experimental::wide::tests::every_first_and_chained_gadget_byte_is_consumed ... ok
+test experimental::sha3_backend::tests::sponge_scalar_counts_and_padding_match_independent_references ... ok
+test experimental::sha3_backend::tests::sponge_parallel_rows_and_all_benchmark_widths_match_scalar_reference ... ok
+test optimized_hash::tests::sha256_matches_standard_and_upstream ... ok
+test experimental::blake3_backend::tests::row_batches_and_stage_pipeline_preserve_all_encodings ... ok
+test optimized_hash::tests::blake3_matches_standard_and_upstream ... ok
+test experimental::tests::sha3_batched_records_match_independent_scalar_specification ... ok
+test optimized_hash::tests::sha3_matches_standard_and_upstream ... ok
+test experimental::wide::tests::scheduler_matches_scalar_and_executes_exact_planned_calls ... ok
+test experimental::blake3_backend::tests::wide_fused_rows_and_verification_match_scalar_schedule ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+
+     Running tests/independent.rs (impl/target/debug/deps/independent-c99f915821e9edee)
+
+running 11 tests
+test rejects_invalid_shapes_and_overflowing_metadata ... ok
+test plonky3_hash_constructions_have_no_domain_prefix ... ok
+test fixed_external_matrix_vectors ... ok
+test fixed_external_hash_vectors ... ok
+test rejects_tampering_and_malformed_proofs ... ok
+test byte_leaves_need_not_be_u32_aligned ... ok
+test hash_padding_and_chunk_boundaries ... ok
+test sha256_matches_recursive_oracle ... ok
+test blake3_matches_recursive_oracle ... ok
+test requested_width_range_is_supported ... ok
+test sha3_matches_recursive_oracle ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/leaf_compatibility.rs (impl/target/debug/deps/leaf_compatibility-20152386042ae907)
+
+running 3 tests
+test blake3_preserves_preoptimization_outputs ... ok
+test sha256_preserves_preoptimization_outputs ... ok
+test sha3_preserves_preoptimization_outputs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/new_constructions.rs (impl/target/debug/deps/new_constructions-3e051cbca7526d59)
+
+running 6 tests
+test empty_batches_do_not_overflow_a_large_public_width ... ok
+test incompatible_backends_are_rejected ... ok
+test counts_match_the_independently_generated_candidate_grid ... ok
+test sha256_wide_records ... ok
+test keccak_records ... ok
+test blake3_wide_records ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/optimized.rs (impl/target/debug/deps/optimized-c550fd1c8332ff71)
+
+running 13 tests
+test invalid_shapes_and_overflow_are_rejected_before_allocation ... ok
+test sha256_specific_mode_rejects_other_suites ... ok
+test single_leaf_has_an_empty_proof_and_still_checks_shape ... ok
+test standard_rejects_malformed_and_tampered_openings ... ok
+test recommit_preserves_shape_and_rebuilds_every_layer ... ok
+test experimental_blake3_openings_and_recommit ... ok
+test requested_matrix_widths_preserve_canonical_encoding ... ok
+test experimental_sha256_openings_and_recommit ... ok
+test standard_sha256_preserves_roots_and_all_paths ... ok
+test experimental_sha3_openings_and_recommit ... ok
+test standard_blake3_preserves_roots_and_all_paths ... ok
+test standard_sha3_preserves_roots_and_all_paths ... ok
+test parallel_chunk_boundaries_preserve_paths ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+     Running tests/plonky3.rs (impl/target/debug/deps/plonky3-8f3ada33da0670af)
+
+running 3 tests
+test sha256_roots_paths_and_verifiers_match_plonky3 ... ok
+test blake3_roots_paths_and_verifiers_match_plonky3 ... ok
+test sha3_roots_paths_and_verifiers_match_plonky3 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+   Doc-tests binary_merkle_tree
+
+running 1 test
+test src/lib.rs - (line 17) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.33s; merged doctests compilation took 0.17s
+
+Exit: 0
+
+$ cargo clippy --locked --offline --manifest-path impl/Cargo.toml --all-targets --all-features -- -D warnings
+    Checking binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s
+
+Exit: 0
+
+Environment: {'RUSTFLAGS': '--cfg keccak_backend="soft"', 'CARGO_TARGET_DIR': '/private/tmp/merkle-lowcall-keccak-soft'}
+$ cargo test --locked --offline --manifest-path impl/Cargo.toml --lib --test leaf_compatibility --test optimized --test new_constructions
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.228
+   Compiling crossbeam-utils v0.8.22
+   Compiling autocfg v1.5.1
+   Compiling serde v1.0.228
+   Compiling crossbeam-epoch v0.9.20
+   Compiling either v1.16.0
+   Compiling crossbeam-deque v0.8.7
+   Compiling rayon-core v1.13.0
+   Compiling paste v1.0.15
+   Compiling pin-project-lite v0.2.17
+   Compiling tracing-core v0.1.36
+   Compiling rand_core v0.10.1
+   Compiling cfg-if v1.0.4
+   Compiling libc v0.2.186
+   Compiling scopeguard v1.2.0
+   Compiling typenum v1.20.1
+   Compiling rand v0.10.3
+   Compiling lock_api v0.4.14
+   Compiling itertools v0.15.0
+   Compiling spin v0.12.3
+   Compiling num-traits v0.2.19
+   Compiling zerocopy v0.8.54
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling const-oid v0.10.2
+   Compiling zmij v1.0.23
+   Compiling cc v1.2.67
+   Compiling serde_json v1.0.150
+   Compiling hybrid-array v0.4.13
+   Compiling anstyle v1.0.14
+   Compiling arrayvec v0.7.8
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling arrayref v0.3.9
+   Compiling itoa v1.0.18
+   Compiling thiserror v2.0.21
+   Compiling plotters-backend v0.3.7
+   Compiling clap_lex v1.1.0
+   Compiling ciborium-io v0.2.2
+   Compiling regex-syntax v0.8.11
+   Compiling constant_time_eq v0.4.2
+   Compiling memchr v2.8.3
+   Compiling blake3 v1.8.5
+   Compiling digest v0.11.3
+   Compiling clap_builder v4.6.0
+   Compiling plotters-svg v0.3.7
+   Compiling itertools v0.10.5
+   Compiling same-file v1.0.6
+   Compiling cast v0.3.0
+   Compiling walkdir v2.5.0
+   Compiling once_cell v1.21.4
+   Compiling anes v0.1.6
+   Compiling regex-automata v0.4.15
+   Compiling bytemuck v1.25.0
+   Compiling oorandom v11.1.5
+   Compiling criterion-plot v0.5.0
+   Compiling clap v4.6.1
+   Compiling regex v1.13.0
+   Compiling rayon v1.12.0
+   Compiling syn v2.0.119
+   Compiling syn v3.0.6
+   Compiling cpufeatures v0.3.0
+   Compiling is-terminal v0.4.17
+   Compiling keccak v0.2.0
+   Compiling sha2 v0.11.0
+   Compiling sha3 v0.11.0
+   Compiling num-integer v0.1.47
+   Compiling plotters v0.3.7
+   Compiling num-bigint v0.5.1
+   Compiling p3-maybe-rayon v0.6.3
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.228
+   Compiling tracing-attributes v0.1.31
+   Compiling zerocopy-derive v0.8.54
+   Compiling tracing v0.1.44
+   Compiling p3-util v0.6.3
+   Compiling tinytemplate v1.2.1
+   Compiling p3-field v0.6.3
+   Compiling p3-symmetric v0.6.3
+   Compiling p3-matrix v0.6.3
+   Compiling p3-sha256 v0.6.3
+   Compiling p3-blake3 v0.6.3
+   Compiling half v2.7.1
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+   Compiling ciborium-ll v0.2.2
+   Compiling p3-dft v0.6.3
+   Compiling p3-multilinear-util v0.6.3
+   Compiling ciborium v0.2.2
+   Compiling p3-mds v0.6.3
+   Compiling criterion v0.5.1
+   Compiling p3-poseidon1 v0.6.3
+   Compiling p3-poseidon2 v0.6.3
+   Compiling p3-monty-31 v0.6.3
+   Compiling p3-challenger v0.6.3
+   Compiling p3-commit v0.6.3
+   Compiling p3-merkle-tree v0.6.3
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.76s
+     Running unittests src/lib.rs (/private/tmp/merkle-lowcall-keccak-soft/debug/deps/binary_merkle_tree-8793d46a98c66627)
+
+running 40 tests
+test experimental::blake3_backend::tests::empty_wide_batch_accepts_a_large_public_width ... ok
+test experimental::sha256_backend::tests::direct_two_block_encoding_matches_standard_sha256 ... ok
+test experimental::sha256_backend::tests::wide_role_packing_and_pair_kernel_match_scalar_compression ... ok
+test blake3_simd::tests::mismatched_batch_shape_is_rejected - should panic ... ok
+test experimental::sha3_backend::tests::direct_oracles_match_standard_sha3_encoding ... ok
+test experimental::tests::blake3_raw_oracles_match_public_hazmat ... ok
+test experimental::tests::rejects_empty_or_unsupported_plans ... ok
+test experimental::tests::rejects_cross_backend_t253_batch - should panic ... ok
+test experimental::tests::rejects_partial_planned_batch - should panic ... ok
+test experimental::tests::rejects_wrong_width - should panic ... ok
+test blake3_simd::tests::wide_batches_and_partial_lanes_match_upstream ... ok
+test experimental::tests::independent_oracle_pairs_preserve_inputs_and_domain_roles ... ok
+test experimental::tests::primitive_counts_and_t253_planning ... ok
+test blake3_simd::tests::wide_oracle_uses_every_payload_and_role_byte ... ok
+test blake3_simd::tests::independent_messages_match_upstream ... ok
+test experimental::tests::primitive_roles_are_distinct ... ok
+test experimental::blake3_backend::tests::pipeline_multiple_windows_and_partial_last_stage ... ok
+test optimized_hash::tests::primitive_counts_include_padding_and_chunk_tree ... ok
+test optimized_hash::tests::rejects_odd_children - should panic ... ok
+test optimized_hash::tests::rejects_partial_row - should panic ... ok
+test optimized_hash::tests::rejects_zero_width - should panic ... ok
+test experimental::tests::blake3_matches_formula ... ok
+test experimental::tests::sha256_matches_formula ... ok
+test sha256_simd::tests::fused_t253_matches_three_independent_compressions ... ok
+test sha256_simd::tests::independent_compressions_match_upstream_for_arbitrary_cvs ... ok
+test experimental::sha256_backend::tests::fused_wide_sha_matches_generic_schedule_at_all_boundaries ... ok
+test experimental::wide::tests::constant_time_planner_matches_exhaustive_schedules ... ok
+test experimental::tests::t253_matches_explicit_layout_and_uses_every_byte ... ok
+test experimental::wide::tests::every_first_and_chained_gadget_byte_is_consumed ... ok
+test experimental::tests::sha3_matches_formula ... ok
+test experimental::sha3_backend::tests::sponge_scalar_counts_and_padding_match_independent_references ... ok
+test optimized_hash::tests::sha256_matches_standard_and_upstream ... ok
+test experimental::sha3_backend::tests::persistent_batch_and_pipeline_match_scalar_graph_at_stage_boundaries ... ok
+test experimental::blake3_backend::tests::row_batches_and_stage_pipeline_preserve_all_encodings ... ok
+test optimized_hash::tests::blake3_matches_standard_and_upstream ... ok
+test experimental::sha3_backend::tests::sponge_parallel_rows_and_all_benchmark_widths_match_scalar_reference ... ok
+test experimental::wide::tests::scheduler_matches_scalar_and_executes_exact_planned_calls ... ok
+test experimental::tests::sha3_batched_records_match_independent_scalar_specification ... ok
+test optimized_hash::tests::sha3_matches_standard_and_upstream ... ok
+test experimental::blake3_backend::tests::wide_fused_rows_and_verification_match_scalar_schedule ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
+
+     Running tests/leaf_compatibility.rs (/private/tmp/merkle-lowcall-keccak-soft/debug/deps/leaf_compatibility-fb6c160858c6bc31)
+
+running 3 tests
+test blake3_preserves_preoptimization_outputs ... ok
+test sha256_preserves_preoptimization_outputs ... ok
+test sha3_preserves_preoptimization_outputs ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/new_constructions.rs (/private/tmp/merkle-lowcall-keccak-soft/debug/deps/new_constructions-4bd203457a2ac511)
+
+running 6 tests
+test empty_batches_do_not_overflow_a_large_public_width ... ok
+test counts_match_the_independently_generated_candidate_grid ... ok
+test incompatible_backends_are_rejected ... ok
+test sha256_wide_records ... ok
+test blake3_wide_records ... ok
+test keccak_records ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
+     Running tests/optimized.rs (/private/tmp/merkle-lowcall-keccak-soft/debug/deps/optimized-56672eeede276f07)
+
+running 13 tests
+test invalid_shapes_and_overflow_are_rejected_before_allocation ... ok
+test sha256_specific_mode_rejects_other_suites ... ok
+test single_leaf_has_an_empty_proof_and_still_checks_shape ... ok
+test standard_rejects_malformed_and_tampered_openings ... ok
+test recommit_preserves_shape_and_rebuilds_every_layer ... ok
+test experimental_blake3_openings_and_recommit ... ok
+test experimental_sha256_openings_and_recommit ... ok
+test standard_sha256_preserves_roots_and_all_paths ... ok
+test requested_matrix_widths_preserve_canonical_encoding ... ok
+test standard_blake3_preserves_roots_and_all_paths ... ok
+test parallel_chunk_boundaries_preserve_paths ... ok
+test experimental_sha3_openings_and_recommit ... ok
+test standard_sha3_preserves_roots_and_all_paths ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+
+
+Exit: 0
