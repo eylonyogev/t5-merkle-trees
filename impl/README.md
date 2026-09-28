@@ -1,4 +1,14 @@
-# Simplified Plonky3 Merkle baseline
+# Binary Merkle trees: Plonky3 baseline and compression experiments
+
+`MerkleTree` is the unchanged reference described below. `OptimizedMerkleTree`
+adds SIMD batching, coarser parallel scheduling, contiguous storage and explicit
+whole-leaf compression modes. `LeafMode::Standard` preserves baseline roots;
+T5, T8, ABR3 and SHA-256 T253 are separate experimental constructions.
+Start with [EXPERIMENTS.md](EXPERIMENTS.md),
+[OPTIMIZED_BENCHMARKS.md](OPTIMIZED_BENCHMARKS.md), and
+[RESULTS.md](RESULTS.md) for the implementation, comparisons and measured results.
+
+## Preserved reference implementation
 
 A single-matrix, binary specialization of **Plonky3 0.6.3**, pinned to upstream
 revision `02bb3950cbb8ff030219d7d9f1673dfe575cc371`. This replaces the original
@@ -74,8 +84,9 @@ index, record length, and exact proof length against the trusted context before
 hashing. No wire-format parser is provided.
 
 Roots and proofs from the previous tagged implementation are incompatible.
-`CommitOptions`, allocation-reusing recommits, and custom multiproofs have been
-removed so the baseline exposes only the single-matrix binary construction.
+`CommitOptions`, allocation-reusing recommits, and custom multiproofs remain
+absent from the baseline, which exposes only the single-matrix binary construction.
+The new optimized tree separately offers allocation-reusing recommits.
 Upstream has additional MMCS and pruned-proof functionality outside this scope.
 
 ## What this baseline does and does not optimize
@@ -87,9 +98,9 @@ packed Poseidon/field-hash configuration, and the byte wrappers do not batch
 independent messages into SIMD lanes.
 
 Each level gets a zero-initialized digest vector, then hashes/compresses in
-parallel using upstream's scheduling interface. There are no custom work
-thresholds, subtree scheduling, hash batching, or special buffer reuse. These are
-explicit future optimization opportunities. Removing generic multi-matrix and
+parallel using upstream's scheduling interface. The baseline has no custom work
+thresholds, subtree scheduling, hash batching, or special buffer reuse. These
+remain isolated from the new optimized implementation. Removing generic multi-matrix and
 arity machinery can change timings, so benchmark parity is measured rather than
 assumed. The verification wrapper retains strict validation and uses upstream's
 bulk leaf-hashing path (`hash_iter_slices`) followed by the same compressor.

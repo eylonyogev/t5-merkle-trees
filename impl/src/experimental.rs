@@ -1,0 +1,1127 @@
+//! Experimental whole-record leaf hashes, with ordinary binary Merkle parents.
+//!
+//! These modes change the commitment scheme, not merely its implementation.
+//! The verifier must authenticate the mode, byte width, encoding and tree shape.
+//! Zero padding below is injective only within that fixed public byte width.
+//! Every opening discloses the entire record: no ABR/T5 partial openings are used.
+//!
+//! T5/T8 follow Sections 4/6 of <https://eprint.iacr.org/2021/373.pdf>.
+//! ABR uses only the eleven-input, height-three construction from Definition 6
+//! and Theorem 15 of <https://cs.nyu.edu/~dodis/ps/ABR.pdf>. Its final feed-forward
+//! is the right child, unlike T5's final feed-forward of the shared message.
+//! Repeating this fixed gadget is ordinary fixed-format composition, not a
+//! claim about the unresolved security of arbitrary-height ABR.
+//!
+//! The papers analyze independent ideal compression functions. Concrete SHA-2,
+//! SHA-3 and BLAKE3 instantiations below remain research constructions requiring
+//! cryptographic review. They are not standard SHA-256/SHA3-256/BLAKE3 hashes.
+
+use crate::{Blake3, Digest, Error, OptimizedHash, Sha3_256, Sha256};
+use sha3::Digest as _;
+
+/// A fixed, public whole-record hashing rule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LeafMode {
+    /// The original hash, with exactly the original commitment roots.
+    Standard,
+    /// Fixed-length MD using a domain-separated 96-to-32-byte oracle.
+    FixedMd,
+    /// Five digest blocks in three 64-to-32-byte oracle calls.
+    T5,
+    /// Eight digest blocks in three 96-to-32-byte oracle calls.
+    T8,
+    /// Eleven digest blocks in seven 64-to-32-byte oracle calls.
+    Abr3,
+    /// SHA-256-only, 253-byte restriction of T8 with genuine role separation.
+    T253,
+}
+
+impl LeafMode {
+    pub const ALL: [Self; 6] = [
+        Self::Standard,
+        Self::FixedMd,
+        Self::T5,
+        Self::T8,
+        Self::Abr3,
+        Self::T253,
+    ];
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::FixedMd => "fixed-md",
+            Self::T5 => "t5",
+            Self::T8 => "t8",
+            Self::Abr3 => "abr3",
+            Self::T253 => "t253",
+        }
+    }
+}
+
+/// Primitive interfaces for experimental leaf constructions.
+///
+/// Roles must be separated, including across the two arities. The built-in
+/// BLAKE3 adapter stores the arity in counter bits 48..55, so its role must
+/// be less than `2^48`. All built-in constructions use small constants.
+pub trait ResearchHash: OptimizedHash {
+    fn oracle2(role: u64, input: &[u8; 64]) -> Digest;
+    fn oracle3(role: u64, input: &[u8; 96]) -> Digest;
+
+    /// Two independent calls, possibly with different domain roles. Backends
+    /// may evaluate them with SIMD; the abstract and native call counts remain
+    /// unchanged.
+    #[inline]
+    fn oracle2_pair(roles: [u64; 2], inputs: [&[u8; 64]; 2]) -> [Digest; 2] {
+        core::array::from_fn(|i| Self::oracle2(roles[i], inputs[i]))
+    }
+
+    #[inline]
+    fn oracle3_pair(roles: [u64; 2], inputs: [&[u8; 96]; 2]) -> [Digest; 2] {
+        core::array::from_fn(|i| Self::oracle3(roles[i], inputs[i]))
+    }
+
+    fn oracle2_calls() -> u64;
+    fn oracle3_calls() -> u64;
+
+    /// Backend hook used by [`LeafPlan::hash_many`]. The caller checks shapes;
+    /// the default preserves scalar evaluation for custom research backends.
+    fn hash_leaves_planned(plan: &LeafPlan, input: &[u8], output: &mut [Digest]) {
+        for (row, digest) in input.chunks_exact(plan.leaf_bytes()).zip(output) {
+            *digest = plan.hash::<Self>(row);
+        }
+    }
+
+    fn supports_t253() -> bool {
+        false
+    }
+
+    /// Evaluate the preplanned SHA-256 restriction. Other suites reject it.
+    fn hash_t253(_input: &[u8], _stages: usize) -> Digest {
+        unreachable!("T253 is supported only by SHA-256")
+    }
+}
+
+/// Width-dependent parameters prepared once, before hashing matrix rows.
+///
+/// Hashing uses bounded stack scratch and no allocation. The plan is reusable
+/// across backends except that T253 is accepted only for SHA-256.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LeafPlan {
+    mode: LeafMode,
+    leaf_bytes: usize,
+    stages: usize,
+    remainder: usize,
+}
+
+impl LeafPlan {
+    pub fn new<H: ResearchHash>(mode: LeafMode, leaf_bytes: usize) -> Result<Self, Error> {
+        if leaf_bytes == 0 {
+            return Err(Error::InvalidLeafSize);
+        }
+        if mode == LeafMode::T253 && !H::supports_t253() {
+            return Err(Error::UnsupportedMode);
+        }
+        let mut remainder = 0;
+        let stages = match mode {
+            LeafMode::Standard => 0,
+            LeafMode::FixedMd => leaf_bytes.div_ceil(64),
+            LeafMode::T5 => stage_count(leaf_bytes, 160, 128),
+            LeafMode::T8 => stage_count(leaf_bytes, 256, 224),
+            LeafMode::Abr3 => stage_count(leaf_bytes, 352, 320),
+            LeafMode::T253 if leaf_bytes < 253 => 0,
+            LeafMode::T253 => {
+                // Removing a gadget replaces three calls by 3 or 4 tail
+                // calls, because 221/64 is between 3 and 4. Therefore the
+                // largest possible k minimizes 3k+ceil((B-32-221k)/64),
+                // and also implements the larger-k tie break without search.
+                let stages = (leaf_bytes - 32) / 221;
+                remainder = (leaf_bytes - 32) % 221;
+                stages
+            }
+        };
+        Ok(Self {
+            mode,
+            leaf_bytes,
+            stages,
+            remainder,
+        })
+    }
+
+    pub const fn mode(&self) -> LeafMode {
+        self.mode
+    }
+
+    pub const fn leaf_bytes(&self) -> usize {
+        self.leaf_bytes
+    }
+
+    /// Calls to the selected abstract oracle, before its concrete cost.
+    /// Standard (including T253's short-input fallback) reports zero because
+    /// it does not use the experimental oracle. Zero does not mean free: use
+    /// `native_calls` to count its compression/permutation work.
+    /// T253 counts its native compression invocations, including its MD tail.
+    pub fn abstract_calls(&self) -> u64 {
+        match self.mode {
+            LeafMode::Standard => 0,
+            LeafMode::FixedMd => self.stages as u64,
+            LeafMode::T5 | LeafMode::T8 => 3 * self.stages as u64,
+            LeafMode::Abr3 => 7 * self.stages as u64,
+            LeafMode::T253 if self.stages == 0 => 0,
+            LeafMode::T253 => 3 * self.stages as u64 + self.remainder.div_ceil(64) as u64,
+        }
+    }
+
+    /// Actual compression/permutation calls, including concrete oracle padding.
+    pub fn native_calls<H: ResearchHash>(&self) -> u64 {
+        match self.mode {
+            LeafMode::Standard => H::standard_leaf_calls(self.leaf_bytes),
+            LeafMode::FixedMd | LeafMode::T8 => self.abstract_calls() * H::oracle3_calls(),
+            LeafMode::T5 | LeafMode::Abr3 => self.abstract_calls() * H::oracle2_calls(),
+            LeafMode::T253 if self.stages == 0 => H::standard_leaf_calls(self.leaf_bytes),
+            LeafMode::T253 => self.abstract_calls(),
+        }
+    }
+
+    /// Hash exactly one record of the planned public width.
+    ///
+    /// # Panics
+    /// Panics if the input has another width, or a T253 plan is used with a
+    /// backend other than SHA-256.
+    #[inline]
+    pub fn hash<H: ResearchHash>(&self, input: &[u8]) -> Digest {
+        assert_eq!(
+            input.len(),
+            self.leaf_bytes,
+            "leaf must match its planned width"
+        );
+        match self.mode {
+            LeafMode::Standard => H::hash_leaf_fast(input),
+            LeafMode::FixedMd => fixed_md::<H>(input),
+            LeafMode::T5 => chained::<160>(input, 128, t5::<H>),
+            LeafMode::T8 => chained::<256>(input, 224, t8::<H>),
+            LeafMode::Abr3 => chained::<352>(input, 320, abr3::<H>),
+            LeafMode::T253 => {
+                assert!(H::supports_t253(), "T253 requires SHA-256");
+                H::hash_t253(input, self.stages)
+            }
+        }
+    }
+
+    /// Hash complete rows using bounded stack scratch and no worker threads.
+    /// SHA3 batches matching gadget stages across two independent records.
+    ///
+    /// # Panics
+    /// Panics if the input and output shapes disagree, or a T253 plan is used
+    /// with a backend other than SHA-256.
+    pub fn hash_many<H: ResearchHash>(&self, input: &[u8], output: &mut [Digest]) {
+        assert_eq!(
+            Some(input.len()),
+            output.len().checked_mul(self.leaf_bytes),
+            "leaf batch must match its planned shape"
+        );
+        assert!(
+            self.mode != LeafMode::T253 || H::supports_t253(),
+            "T253 requires SHA-256"
+        );
+        if self.mode == LeafMode::Standard {
+            H::hash_leaves_fast(input, self.leaf_bytes, output);
+        } else {
+            H::hash_leaves_planned(self, input, output);
+        }
+    }
+}
+
+fn stage_count(bytes: usize, first: usize, subsequent: usize) -> usize {
+    1 + bytes.saturating_sub(first).div_ceil(subsequent)
+}
+
+const MD_ROLE: u64 = 1;
+const T5_ROLES: [u64; 3] = [10, 11, 12];
+const T8_ROLES: [u64; 3] = [20, 21, 22];
+const ABR_ROLES: [u64; 7] = [30, 31, 32, 33, 34, 35, 36];
+
+#[inline]
+fn xor(left: Digest, right: &Digest) -> Digest {
+    core::array::from_fn(|i| left[i] ^ right[i])
+}
+
+#[inline]
+fn fixed_md<H: ResearchHash>(input: &[u8]) -> Digest {
+    let mut state = [0; 32];
+    for chunk in input.chunks(64) {
+        let mut message = [0; 96];
+        message[..32].copy_from_slice(&state);
+        message[32..32 + chunk.len()].copy_from_slice(chunk);
+        state = H::oracle3(MD_ROLE, &message);
+    }
+    state
+}
+
+/// Gadget chaining: T5/T8 place state in their shared XOR slot; ABR places it
+/// in the first bottom-node input. Every stage evaluates the complete gadget.
+#[inline]
+fn chained<const BYTES: usize>(
+    input: &[u8],
+    fresh: usize,
+    gadget: fn(&[u8; BYTES]) -> Digest,
+) -> Digest {
+    let mut message = [0; BYTES];
+    let first = input.len().min(BYTES);
+    message[..first].copy_from_slice(&input[..first]);
+    let mut state = gadget(&message);
+    for chunk in input[first..].chunks(fresh) {
+        message.fill(0);
+        if BYTES == 352 {
+            message[..32].copy_from_slice(&state);
+            message[32..32 + chunk.len()].copy_from_slice(chunk);
+        } else {
+            let shared = if BYTES == 160 { 128 } else { 192 };
+            let before_shared = chunk.len().min(shared);
+            message[..before_shared].copy_from_slice(&chunk[..before_shared]);
+            message[shared..shared + 32].copy_from_slice(&state);
+            if chunk.len() > shared {
+                message[shared + 32..shared + 32 + chunk.len() - shared]
+                    .copy_from_slice(&chunk[shared..]);
+            }
+        }
+        state = gadget(&message);
+    }
+    state
+}
+
+#[inline]
+fn t5<H: ResearchHash>(message: &[u8; 160]) -> Digest {
+    let shared: &Digest = message[128..160].try_into().unwrap();
+    let [left, right] = H::oracle2_pair(
+        [T5_ROLES[0], T5_ROLES[1]],
+        [
+            message[..64].try_into().unwrap(),
+            message[64..128].try_into().unwrap(),
+        ],
+    );
+    let mut root = [0; 64];
+    root[..32].copy_from_slice(&xor(left, shared));
+    root[32..].copy_from_slice(&xor(right, shared));
+    xor(H::oracle2(T5_ROLES[2], &root), shared)
+}
+
+#[inline]
+fn t8<H: ResearchHash>(message: &[u8; 256]) -> Digest {
+    let shared: &Digest = message[192..224].try_into().unwrap();
+    let [left, right] = H::oracle3_pair(
+        [T8_ROLES[0], T8_ROLES[1]],
+        [
+            message[..96].try_into().unwrap(),
+            message[96..192].try_into().unwrap(),
+        ],
+    );
+    let mut root = [0; 96];
+    root[..32].copy_from_slice(&xor(left, shared));
+    root[32..64].copy_from_slice(&xor(right, shared));
+    root[64..].copy_from_slice(&message[224..]);
+    xor(H::oracle3(T8_ROLES[2], &root), shared)
+}
+
+#[inline]
+fn abr_node<H: ResearchHash>(role: u64, left: Digest, right: Digest, shared: &Digest) -> Digest {
+    let mut message = [0; 64];
+    message[..32].copy_from_slice(&xor(left, shared));
+    message[32..].copy_from_slice(&xor(right, shared));
+    xor(H::oracle2(role, &message), &right)
+}
+
+#[inline]
+fn abr3<H: ResearchHash>(message: &[u8; 352]) -> Digest {
+    let [bottom0, bottom1] = H::oracle2_pair(
+        [ABR_ROLES[0], ABR_ROLES[1]],
+        [
+            message[..64].try_into().unwrap(),
+            message[64..128].try_into().unwrap(),
+        ],
+    );
+    let [bottom2, bottom3] = H::oracle2_pair(
+        [ABR_ROLES[2], ABR_ROLES[3]],
+        [
+            message[128..192].try_into().unwrap(),
+            message[192..256].try_into().unwrap(),
+        ],
+    );
+    let [left, right] = abr_node_pair::<H>(
+        [ABR_ROLES[4], ABR_ROLES[5]],
+        [bottom0, bottom2],
+        [bottom1, bottom3],
+        [
+            message[256..288].try_into().unwrap(),
+            message[288..320].try_into().unwrap(),
+        ],
+    );
+    abr_node::<H>(
+        ABR_ROLES[6],
+        left,
+        right,
+        message[320..352].try_into().unwrap(),
+    )
+}
+
+#[inline]
+fn abr_node_pair<H: ResearchHash>(
+    roles: [u64; 2],
+    left: [Digest; 2],
+    right: [Digest; 2],
+    shared: [&Digest; 2],
+) -> [Digest; 2] {
+    let messages: [[u8; 64]; 2] = core::array::from_fn(|i| {
+        let mut message = [0; 64];
+        message[..32].copy_from_slice(&xor(left[i], shared[i]));
+        message[32..].copy_from_slice(&xor(right[i], shared[i]));
+        message
+    });
+    let digests = H::oracle2_pair(roles, [&messages[0], &messages[1]]);
+    core::array::from_fn(|i| xor(digests[i], &right[i]))
+}
+
+/// Evaluate the same gadget stage in two independent records. Each pair uses
+/// the same domain role but has its own state and message; no input or digest
+/// is shared between records.
+fn chained_pair<const BYTES: usize>(
+    input: [&[u8]; 2],
+    fresh: usize,
+    gadget: fn(&[[u8; BYTES]; 2]) -> [Digest; 2],
+) -> [Digest; 2] {
+    let mut messages = [[0; BYTES]; 2];
+    let first = input[0].len().min(BYTES);
+    for i in 0..2 {
+        messages[i][..first].copy_from_slice(&input[i][..first]);
+    }
+    let mut state = gadget(&messages);
+    let mut offset = first;
+    while offset < input[0].len() {
+        let count = fresh.min(input[0].len() - offset);
+        for i in 0..2 {
+            messages[i].fill(0);
+            let chunk = &input[i][offset..offset + count];
+            if BYTES == 352 {
+                messages[i][..32].copy_from_slice(&state[i]);
+                messages[i][32..32 + count].copy_from_slice(chunk);
+            } else {
+                let shared = if BYTES == 160 { 128 } else { 192 };
+                let before_shared = count.min(shared);
+                messages[i][..before_shared].copy_from_slice(&chunk[..before_shared]);
+                messages[i][shared..shared + 32].copy_from_slice(&state[i]);
+                if count > shared {
+                    messages[i][shared + 32..shared + 32 + count - shared]
+                        .copy_from_slice(&chunk[shared..]);
+                }
+            }
+        }
+        state = gadget(&messages);
+        offset += count;
+    }
+    state
+}
+
+fn fixed_md_pair<H: ResearchHash>(input: [&[u8]; 2]) -> [Digest; 2] {
+    let mut state = [[0; 32]; 2];
+    for offset in (0..input[0].len()).step_by(64) {
+        let count = 64.min(input[0].len() - offset);
+        let messages: [[u8; 96]; 2] = core::array::from_fn(|i| {
+            let mut message = [0; 96];
+            message[..32].copy_from_slice(&state[i]);
+            message[32..32 + count].copy_from_slice(&input[i][offset..offset + count]);
+            message
+        });
+        state = H::oracle3_pair([MD_ROLE; 2], [&messages[0], &messages[1]]);
+    }
+    state
+}
+
+fn t5_pair<H: ResearchHash>(messages: &[[u8; 160]; 2]) -> [Digest; 2] {
+    let left = H::oracle2_pair(
+        [T5_ROLES[0]; 2],
+        core::array::from_fn(|i| messages[i][..64].try_into().unwrap()),
+    );
+    let right = H::oracle2_pair(
+        [T5_ROLES[1]; 2],
+        core::array::from_fn(|i| messages[i][64..128].try_into().unwrap()),
+    );
+    let shared: [&Digest; 2] = core::array::from_fn(|i| messages[i][128..].try_into().unwrap());
+    let roots: [[u8; 64]; 2] = core::array::from_fn(|i| {
+        let mut root = [0; 64];
+        root[..32].copy_from_slice(&xor(left[i], shared[i]));
+        root[32..].copy_from_slice(&xor(right[i], shared[i]));
+        root
+    });
+    let digests = H::oracle2_pair([T5_ROLES[2]; 2], [&roots[0], &roots[1]]);
+    core::array::from_fn(|i| xor(digests[i], shared[i]))
+}
+
+fn t8_pair<H: ResearchHash>(messages: &[[u8; 256]; 2]) -> [Digest; 2] {
+    let left = H::oracle3_pair(
+        [T8_ROLES[0]; 2],
+        core::array::from_fn(|i| messages[i][..96].try_into().unwrap()),
+    );
+    let right = H::oracle3_pair(
+        [T8_ROLES[1]; 2],
+        core::array::from_fn(|i| messages[i][96..192].try_into().unwrap()),
+    );
+    let shared: [&Digest; 2] = core::array::from_fn(|i| messages[i][192..224].try_into().unwrap());
+    let roots: [[u8; 96]; 2] = core::array::from_fn(|i| {
+        let mut root = [0; 96];
+        root[..32].copy_from_slice(&xor(left[i], shared[i]));
+        root[32..64].copy_from_slice(&xor(right[i], shared[i]));
+        root[64..].copy_from_slice(&messages[i][224..]);
+        root
+    });
+    let digests = H::oracle3_pair([T8_ROLES[2]; 2], [&roots[0], &roots[1]]);
+    core::array::from_fn(|i| xor(digests[i], shared[i]))
+}
+
+fn abr3_pair<H: ResearchHash>(messages: &[[u8; 352]; 2]) -> [Digest; 2] {
+    let bottom: [[Digest; 2]; 4] = core::array::from_fn(|node| {
+        H::oracle2_pair(
+            [ABR_ROLES[node]; 2],
+            core::array::from_fn(|i| messages[i][node * 64..(node + 1) * 64].try_into().unwrap()),
+        )
+    });
+    let left = abr_node_pair::<H>(
+        [ABR_ROLES[4]; 2],
+        bottom[0],
+        bottom[1],
+        core::array::from_fn(|i| messages[i][256..288].try_into().unwrap()),
+    );
+    let right = abr_node_pair::<H>(
+        [ABR_ROLES[5]; 2],
+        bottom[2],
+        bottom[3],
+        core::array::from_fn(|i| messages[i][288..320].try_into().unwrap()),
+    );
+    abr_node_pair::<H>(
+        [ABR_ROLES[6]; 2],
+        left,
+        right,
+        core::array::from_fn(|i| messages[i][320..352].try_into().unwrap()),
+    )
+}
+
+/// Prefix is part of the experimental suite definition. It also separates the
+/// oracle arities. Seventeen bytes leave both SHA-256 widths within two blocks,
+/// and both SHA3 widths within a single 136-byte rate block.
+fn prefix(arity: u8, role: u64) -> [u8; 17] {
+    let mut bytes = [0; 17];
+    bytes[..8].copy_from_slice(b"MTLFv001");
+    bytes[8] = arity;
+    bytes[9..].copy_from_slice(&role.to_le_bytes());
+    bytes
+}
+
+impl ResearchHash for Sha256 {
+    #[inline]
+    fn oracle2(role: u64, input: &[u8; 64]) -> Digest {
+        // Fixed, distinct CVs provide genuinely disjoint native compression
+        // domains. In particular this is not a role XORed into variable input.
+        let mut iv = [0; 32];
+        iv[..17].copy_from_slice(&prefix(2, role));
+        sha256_compress(&iv, input)
+    }
+
+    #[inline]
+    fn oracle3(role: u64, input: &[u8; 96]) -> Digest {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(prefix(3, role));
+        hasher.update(input);
+        hasher.finalize().into()
+    }
+
+    fn oracle2_calls() -> u64 {
+        1
+    }
+    fn oracle3_calls() -> u64 {
+        2
+    }
+    fn supports_t253() -> bool {
+        true
+    }
+
+    fn hash_t253(input: &[u8], stages: usize) -> Digest {
+        if stages == 0 {
+            return Self::hash_leaf_fast(input);
+        }
+        let mut state = t253_gadget(
+            input[..95].try_into().unwrap(),
+            input[95..190].try_into().unwrap(),
+            input[190..222].try_into().unwrap(),
+            input[222..253].try_into().unwrap(),
+        );
+        let mut offset = 253;
+        for _ in 1..stages {
+            state = t253_gadget(
+                input[offset..offset + 95].try_into().unwrap(),
+                input[offset + 95..offset + 190].try_into().unwrap(),
+                &state,
+                input[offset + 190..offset + 221].try_into().unwrap(),
+            );
+            offset += 221;
+        }
+        for chunk in input[offset..].chunks(64) {
+            let mut block = [0; 64];
+            block[..chunk.len()].copy_from_slice(chunk);
+            state = sha256_compress(&state, &block);
+        }
+        state
+    }
+}
+
+#[inline]
+fn sha256_compress(iv: &Digest, block: &[u8; 64]) -> Digest {
+    let mut state =
+        core::array::from_fn(|i| u32::from_be_bytes(iv[i * 4..i * 4 + 4].try_into().unwrap()));
+    sha2::block_api::compress256(&mut state, core::slice::from_ref(block));
+    let mut digest = [0; 32];
+    for (bytes, word) in digest.chunks_exact_mut(4).zip(state) {
+        bytes.copy_from_slice(&word.to_be_bytes());
+    }
+    digest
+}
+
+/// One native SHA-256 call on 95 freely chosen bytes. Three role bytes select
+/// disjoint slices of the complete 96-byte SHA-256 compression input domain.
+#[inline]
+fn sha256_95(role: u8, block: &[u8; 64], extra: &[u8; 31]) -> Digest {
+    let mut iv = [0; 32];
+    iv[0] = role;
+    iv[1..].copy_from_slice(extra);
+    sha256_compress(&iv, block)
+}
+
+#[inline]
+fn t253_gadget(left: &[u8; 95], right: &[u8; 95], shared: &Digest, extra: &[u8; 31]) -> Digest {
+    let a = sha256_95(
+        0xa1,
+        left[..64].try_into().unwrap(),
+        left[64..].try_into().unwrap(),
+    );
+    let b = sha256_95(
+        0xa2,
+        right[..64].try_into().unwrap(),
+        right[64..].try_into().unwrap(),
+    );
+    let mut block = [0; 64];
+    block[..32].copy_from_slice(&xor(a, shared));
+    block[32..].copy_from_slice(&xor(b, shared));
+    xor(sha256_95(0xa3, &block, extra), shared)
+}
+
+impl ResearchHash for Sha3_256 {
+    #[inline]
+    fn oracle2(role: u64, input: &[u8; 64]) -> Digest {
+        let mut hasher = sha3::Sha3_256::new();
+        hasher.update(prefix(2, role));
+        hasher.update(input);
+        hasher.finalize().into()
+    }
+
+    #[inline]
+    fn oracle3(role: u64, input: &[u8; 96]) -> Digest {
+        let mut hasher = sha3::Sha3_256::new();
+        hasher.update(prefix(3, role));
+        hasher.update(input);
+        hasher.finalize().into()
+    }
+
+    #[inline]
+    fn oracle2_pair(roles: [u64; 2], inputs: [&[u8; 64]; 2]) -> [Digest; 2] {
+        sha3_oracle_pair(2, roles, [inputs[0], inputs[1]])
+    }
+
+    #[inline]
+    fn oracle3_pair(roles: [u64; 2], inputs: [&[u8; 96]; 2]) -> [Digest; 2] {
+        sha3_oracle_pair(3, roles, [inputs[0], inputs[1]])
+    }
+
+    fn hash_leaves_planned(plan: &LeafPlan, input: &[u8], output: &mut [Digest]) {
+        let width = plan.leaf_bytes();
+        if plan.mode() == LeafMode::Standard {
+            Self::hash_leaves_fast(input, width, output);
+            return;
+        }
+        assert!(plan.mode() != LeafMode::T253, "T253 requires SHA-256");
+        for (rows, digests) in input
+            .chunks(width.saturating_mul(2))
+            .zip(output.chunks_mut(2))
+        {
+            if digests.len() == 1 {
+                digests[0] = plan.hash::<Self>(rows);
+                continue;
+            }
+            let inputs = [&rows[..width], &rows[width..]];
+            let pair = match plan.mode() {
+                LeafMode::FixedMd => fixed_md_pair::<Self>(inputs),
+                LeafMode::T5 => chained_pair::<160>(inputs, 128, t5_pair::<Self>),
+                LeafMode::T8 => chained_pair::<256>(inputs, 224, t8_pair::<Self>),
+                LeafMode::Abr3 => chained_pair::<352>(inputs, 320, abr3_pair::<Self>),
+                LeafMode::Standard | LeafMode::T253 => unreachable!(),
+            };
+            digests.copy_from_slice(&pair);
+        }
+    }
+
+    fn oracle2_calls() -> u64 {
+        1
+    }
+    fn oracle3_calls() -> u64 {
+        1
+    }
+}
+
+#[inline]
+fn sha3_oracle_pair(arity: u8, roles: [u64; 2], inputs: [&[u8]; 2]) -> [Digest; 2] {
+    // Both domain-prefixed widths (81 and 113 bytes) fit one SHA3 rate block.
+    // Packing complete independent messages lets the stable Keccak backend
+    // use both lanes instead of computing a dummy lane in each scalar call.
+    let width = 17 + inputs[0].len();
+    let mut encoded = [0; 226];
+    for i in 0..2 {
+        let row = &mut encoded[i * width..(i + 1) * width];
+        row[..17].copy_from_slice(&prefix(arity, roles[i]));
+        row[17..].copy_from_slice(inputs[i]);
+    }
+    let mut output = [[0; 32]; 2];
+    Sha3_256::hash_leaves_fast(&encoded[..width * 2], width, &mut output);
+    output
+}
+
+fn blake3_counter(arity: u8, role: u64) -> u64 {
+    assert!(
+        role < (1 << 48),
+        "BLAKE3 experimental role exceeds its namespace"
+    );
+    (u64::from(arity) << 48) | role
+}
+
+#[inline]
+fn blake3_oracle(arity: u8, role: u64, key: &Digest, block: &[u8; 64]) -> Digest {
+    let mut cv = blake3::platform::words_from_le_bytes_32(key);
+    // KEYED_HASH | CHUNK_START | CHUNK_END, deliberately without ROOT.
+    blake3::platform::Platform::detect().compress_in_place(
+        &mut cv,
+        block,
+        64,
+        blake3_counter(arity, role),
+        16 | 1 | 2,
+    );
+    let mut output = [0; 32];
+    for (bytes, word) in output.chunks_exact_mut(4).zip(cv) {
+        bytes.copy_from_slice(&word.to_le_bytes());
+    }
+    output
+}
+
+impl ResearchHash for Blake3 {
+    #[inline]
+    fn oracle2(role: u64, input: &[u8; 64]) -> Digest {
+        blake3_oracle(2, role, &[0; 32], input)
+    }
+
+    #[inline]
+    fn oracle3(role: u64, input: &[u8; 96]) -> Digest {
+        blake3_oracle(
+            3,
+            role,
+            input[64..].try_into().unwrap(),
+            input[..64].try_into().unwrap(),
+        )
+    }
+
+    fn oracle2_calls() -> u64 {
+        1
+    }
+    fn oracle3_calls() -> u64 {
+        1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data(bytes: usize) -> Vec<u8> {
+        (0..bytes)
+            .map(|i| i.wrapping_mul(73).wrapping_add(i / 7) as u8)
+            .collect()
+    }
+
+    // Deliberately separate, block-oriented specification. Production code
+    // works on byte offsets; this one pads/concatenates Vecs and indexes blocks.
+    fn reference_gadget<H: ResearchHash>(mode: LeafMode, bytes: &[u8]) -> Digest {
+        let blocks: Vec<Digest> = bytes
+            .chunks_exact(32)
+            .map(|b| b.try_into().unwrap())
+            .collect();
+        let call2 = |role, x: Digest, y: Digest| {
+            let bytes = [x.as_slice(), y.as_slice()].concat();
+            H::oracle2(role, bytes.as_slice().try_into().unwrap())
+        };
+        let call3 = |role, x: Digest, y: Digest, z: Digest| {
+            let bytes = [x.as_slice(), y.as_slice(), z.as_slice()].concat();
+            H::oracle3(role, bytes.as_slice().try_into().unwrap())
+        };
+        match mode {
+            LeafMode::T5 => {
+                let a = call2(10, blocks[0], blocks[1]);
+                let b = call2(11, blocks[2], blocks[3]);
+                xor(
+                    call2(12, xor(a, &blocks[4]), xor(b, &blocks[4])),
+                    &blocks[4],
+                )
+            }
+            LeafMode::T8 => {
+                let a = call3(20, blocks[0], blocks[1], blocks[2]);
+                let b = call3(21, blocks[3], blocks[4], blocks[5]);
+                xor(
+                    call3(22, xor(a, &blocks[6]), xor(b, &blocks[6]), blocks[7]),
+                    &blocks[6],
+                )
+            }
+            LeafMode::Abr3 => {
+                let mut values: Vec<Digest> = (0..4)
+                    .map(|i| call2(30 + i as u64, blocks[2 * i], blocks[2 * i + 1]))
+                    .collect();
+                let mut msg = 8;
+                let mut role = 34;
+                while values.len() > 1 {
+                    values = values
+                        .chunks_exact(2)
+                        .map(|pair| {
+                            let out = xor(
+                                call2(role, xor(pair[0], &blocks[msg]), xor(pair[1], &blocks[msg])),
+                                &pair[1],
+                            );
+                            msg += 1;
+                            role += 1;
+                            out
+                        })
+                        .collect();
+                }
+                values[0]
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn reference<H: ResearchHash>(mode: LeafMode, input: &[u8]) -> Digest {
+        if mode == LeafMode::Standard {
+            return H::hash_leaf_fast(input);
+        }
+        if mode == LeafMode::FixedMd {
+            let mut state = [0; 32];
+            for chunk in input.chunks(64) {
+                let mut bytes = state.to_vec();
+                bytes.extend_from_slice(chunk);
+                bytes.resize(96, 0);
+                state = H::oracle3(1, bytes.as_slice().try_into().unwrap());
+            }
+            return state;
+        }
+        let width = match mode {
+            LeafMode::T5 => 160,
+            LeafMode::T8 => 256,
+            LeafMode::Abr3 => 352,
+            _ => unreachable!(),
+        };
+        let first = input.len().min(width);
+        let mut first_input = input[..first].to_vec();
+        first_input.resize(width, 0);
+        let mut state = reference_gadget::<H>(mode, &first_input);
+        for chunk in input[first..].chunks(width - 32) {
+            let mut bytes = chunk.to_vec();
+            bytes.resize(width - 32, 0);
+            let insertion = match mode {
+                LeafMode::T5 => 128,
+                LeafMode::T8 => 192,
+                LeafMode::Abr3 => 0,
+                _ => unreachable!(),
+            };
+            bytes.splice(insertion..insertion, state);
+            state = reference_gadget::<H>(mode, &bytes);
+        }
+        state
+    }
+
+    fn check_reference<H: ResearchHash>() {
+        for width in [
+            1, 4, 31, 32, 63, 64, 65, 127, 128, 159, 160, 161, 192, 223, 224, 253, 255, 256, 257,
+            288, 289, 351, 352, 353, 480, 481, 512, 672, 673, 1024, 4096,
+        ] {
+            let input = data(width);
+            for mode in LeafMode::ALL
+                .into_iter()
+                .filter(|&mode| mode != LeafMode::T253)
+            {
+                let plan = LeafPlan::new::<H>(mode, width).unwrap();
+                assert_eq!(
+                    plan.hash::<H>(&input),
+                    reference::<H>(mode, &input),
+                    "{mode:?}, width={width}"
+                );
+                // Every byte of the disclosed record must affect its digest.
+                for index in [0, width / 2, width - 1] {
+                    let mut changed = input.clone();
+                    changed[index] ^= 1;
+                    assert_ne!(plan.hash::<H>(&input), plan.hash::<H>(&changed));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn sha256_matches_formula() {
+        check_reference::<Sha256>();
+    }
+    #[test]
+    fn sha3_matches_formula() {
+        check_reference::<Sha3_256>();
+    }
+    #[test]
+    fn blake3_matches_formula() {
+        check_reference::<Blake3>();
+    }
+
+    #[test]
+    fn independent_oracle_pairs_preserve_inputs_and_domain_roles() {
+        fn check<H: ResearchHash>() {
+            let bytes = data(192);
+            let input2 = [
+                bytes[..64].try_into().unwrap(),
+                bytes[64..128].try_into().unwrap(),
+            ];
+            let input3 = [
+                bytes[..96].try_into().unwrap(),
+                bytes[96..].try_into().unwrap(),
+            ];
+            for roles in [[0, 0], [10, 11], [20, 21], [35, 34], [65535, 1]] {
+                assert_eq!(
+                    H::oracle2_pair(roles, input2),
+                    core::array::from_fn(|i| H::oracle2(roles[i], input2[i]))
+                );
+                assert_eq!(
+                    H::oracle3_pair(roles, input3),
+                    core::array::from_fn(|i| H::oracle3(roles[i], input3[i]))
+                );
+            }
+        }
+        check::<Sha256>();
+        check::<Sha3_256>();
+        check::<Blake3>();
+    }
+
+    #[test]
+    fn sha3_batched_records_match_independent_scalar_specification() {
+        for width in [
+            1, 4, 31, 32, 63, 64, 65, 127, 128, 159, 160, 161, 192, 223, 224, 255, 256, 257, 287,
+            288, 289, 351, 352, 353, 479, 480, 481, 511, 512, 672, 673, 1024, 4096,
+        ] {
+            for mode in LeafMode::ALL
+                .into_iter()
+                .filter(|&mode| mode != LeafMode::T253)
+            {
+                let plan = LeafPlan::new::<Sha3_256>(mode, width).unwrap();
+                for count in [0, 1, 2, 3, 4, 5, 9] {
+                    let input = data(count * width);
+                    let mut output = vec![[0; 32]; count];
+                    plan.hash_many::<Sha3_256>(&input, &mut output);
+                    for (row, digest) in input.chunks_exact(width).zip(output) {
+                        assert_eq!(
+                            digest,
+                            reference::<Sha3_256>(mode, row),
+                            "{mode:?}, width={width}, count={count}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "leaf batch must match its planned shape")]
+    fn rejects_partial_planned_batch() {
+        LeafPlan::new::<Sha3_256>(LeafMode::T8, 256)
+            .unwrap()
+            .hash_many::<Sha3_256>(&[0; 511], &mut [[0; 32]; 2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "T253 requires SHA-256")]
+    fn rejects_cross_backend_t253_batch() {
+        LeafPlan::new::<Sha256>(LeafMode::T253, 256)
+            .unwrap()
+            .hash_many::<Sha3_256>(&[0; 512], &mut [[0; 32]; 2]);
+    }
+
+    #[test]
+    fn primitive_roles_are_distinct() {
+        fn check<H: ResearchHash>() {
+            for role in 0..40 {
+                assert_ne!(H::oracle2(role, &[0; 64]), H::oracle2(role + 1, &[0; 64]));
+                assert_ne!(H::oracle3(role, &[0; 96]), H::oracle3(role + 1, &[0; 96]));
+                assert_ne!(H::oracle2(role, &[0; 64]), H::oracle3(role, &[0; 96]));
+            }
+        }
+        check::<Sha256>();
+        check::<Sha3_256>();
+        check::<Blake3>();
+        for role in [0xa1, 0xa2] {
+            assert_ne!(
+                sha256_95(role, &[0; 64], &[0; 31]),
+                sha256_95(role + 1, &[0; 64], &[0; 31])
+            );
+        }
+    }
+
+    #[test]
+    fn blake3_raw_oracles_match_public_hazmat() {
+        use blake3::hazmat::HasherExt;
+        for role in [0, 1, 10, 36, 65535] {
+            let bytes = data(96);
+            for arity in [2, 3] {
+                let key: Digest = if arity == 2 {
+                    [0; 32]
+                } else {
+                    bytes[64..].try_into().unwrap()
+                };
+                let mut hasher = blake3::Hasher::new_keyed(&key);
+                hasher.set_input_offset(blake3_counter(arity, role) * 1024);
+                hasher.update(&bytes[..64]);
+                let actual = if arity == 2 {
+                    Blake3::oracle2(role, bytes[..64].try_into().unwrap())
+                } else {
+                    Blake3::oracle3(role, bytes.as_slice().try_into().unwrap())
+                };
+                assert_eq!(actual, hasher.finalize_non_root());
+                assert_eq!(blake3_counter(arity, role) >> 48, u64::from(arity));
+                assert_eq!(blake3_counter(arity, role) & ((1 << 48) - 1), role);
+            }
+        }
+    }
+
+    #[test]
+    fn primitive_counts_and_t253_planning() {
+        for (mode, width, abstract_calls, sha256_calls) in [
+            (LeafMode::FixedMd, 64, 1, 2),
+            (LeafMode::FixedMd, 65, 2, 4),
+            (LeafMode::T5, 160, 3, 3),
+            (LeafMode::T5, 161, 6, 6),
+            (LeafMode::T8, 256, 3, 6),
+            (LeafMode::T8, 257, 6, 12),
+            (LeafMode::Abr3, 352, 7, 7),
+            (LeafMode::Abr3, 353, 14, 14),
+        ] {
+            let plan = LeafPlan::new::<Sha256>(mode, width).unwrap();
+            assert_eq!(plan.abstract_calls(), abstract_calls);
+            assert_eq!(plan.native_calls::<Sha256>(), sha256_calls);
+            assert_eq!(plan.native_calls::<Sha3_256>(), abstract_calls);
+            assert_eq!(plan.native_calls::<Blake3>(), abstract_calls);
+        }
+        for width in 253..4096 {
+            let plan = LeafPlan::new::<Sha256>(LeafMode::T253, width).unwrap();
+            let expected = (1..=(width - 32) / 221)
+                .map(|k| 3 * k + (width - 32 - 221 * k).div_ceil(64))
+                .min()
+                .unwrap();
+            assert_eq!(plan.native_calls::<Sha256>(), expected as u64);
+        }
+        for (width, calls) in [
+            (252, 5),
+            (253, 3),
+            (254, 4),
+            (256, 4),
+            (474, 6),
+            (475, 7),
+            (512, 7),
+            (1024, 14),
+        ] {
+            assert_eq!(
+                LeafPlan::new::<Sha256>(LeafMode::T253, width)
+                    .unwrap()
+                    .native_calls::<Sha256>(),
+                calls
+            );
+        }
+    }
+
+    #[test]
+    fn t253_matches_explicit_layout_and_uses_every_byte() {
+        for width in [1, 64, 252, 253, 254, 256, 317, 318, 474, 475, 512, 1024] {
+            let input = data(width);
+            let plan = LeafPlan::new::<Sha256>(LeafMode::T253, width).unwrap();
+            let actual = plan.hash::<Sha256>(&input);
+            if width < 253 {
+                assert_eq!(actual, Sha256::hash_leaf_fast(&input));
+            } else {
+                let primitive = |role: u8, bytes: &[u8]| {
+                    let mut iv = vec![role];
+                    iv.extend_from_slice(&bytes[64..95]);
+                    sha256_compress(
+                        iv.as_slice().try_into().unwrap(),
+                        bytes[..64].try_into().unwrap(),
+                    )
+                };
+                let gadget = |bytes: &[u8]| {
+                    let a = primitive(0xa1, &bytes[..95]);
+                    let b = primitive(0xa2, &bytes[95..190]);
+                    let m: &Digest = bytes[190..222].try_into().unwrap();
+                    let mut final_input = xor(a, m).to_vec();
+                    final_input.extend_from_slice(&xor(b, m));
+                    final_input.extend_from_slice(&bytes[222..253]);
+                    xor(primitive(0xa3, &final_input), m)
+                };
+                let mut reference = gadget(&input[..253]);
+                let mut consumed = 253;
+                for _ in 1..plan.stages {
+                    let mut bytes = input[consumed..consumed + 221].to_vec();
+                    bytes.splice(190..190, reference);
+                    reference = gadget(&bytes);
+                    consumed += 221;
+                }
+                for chunk in input[consumed..].chunks(64) {
+                    let mut bytes = chunk.to_vec();
+                    bytes.resize(64, 0);
+                    reference = sha256_compress(&reference, bytes.as_slice().try_into().unwrap());
+                }
+                assert_eq!(actual, reference, "width={width}");
+            }
+            for index in 0..width {
+                let mut changed = input.clone();
+                changed[index] ^= 1;
+                assert_ne!(
+                    actual,
+                    plan.hash::<Sha256>(&changed),
+                    "width={width}, changed={index}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_empty_or_unsupported_plans() {
+        assert_eq!(
+            LeafPlan::new::<Sha256>(LeafMode::T5, 0),
+            Err(Error::InvalidLeafSize)
+        );
+        assert_eq!(
+            LeafPlan::new::<Blake3>(LeafMode::T253, 256),
+            Err(Error::UnsupportedMode)
+        );
+        assert_eq!(
+            LeafPlan::new::<Sha3_256>(LeafMode::T253, 256),
+            Err(Error::UnsupportedMode)
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "leaf must match its planned width")]
+    fn rejects_wrong_width() {
+        LeafPlan::new::<Sha256>(LeafMode::T8, 256)
+            .unwrap()
+            .hash::<Sha256>(&[0; 255]);
+    }
+}

@@ -1,0 +1,323 @@
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+    Finished `bench` profile [optimized] target(s) in 6.10s
+     Running benches/optimized.rs (target/release/deps/optimized-93577881b67e28e9)
+Gnuplot not found, using plotters backend
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^6
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0276 s (1375 iterations)
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^6: Analyzing
+experiment_commit/sha256/baseline/n2^20/w2^6
+                        time:   [743.90 µs 747.59 µs 751.06 µs]
+                        thrpt:  [5.2010 GiB/s 5.2251 GiB/s 5.2511 GiB/s]
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^6
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0317 s (1760 iterations)
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^6: Analyzing
+experiment_commit/sha256/standard/n2^20/w2^6
+                        time:   [585.25 µs 586.15 µs 587.29 µs]
+                        thrpt:  [6.6514 GiB/s 6.6642 GiB/s 6.6745 GiB/s]
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^6
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0204 s (1210 iterations)
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^6: Analyzing
+experiment_commit/sha256/t8/n2^20/w2^6
+                        time:   [840.48 µs 841.82 µs 843.77 µs]
+                        thrpt:  [4.6295 GiB/s 4.6402 GiB/s 4.6477 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^6
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^6: Collecting 10 samples in estimated 1.0193 s (1870 iterations)
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^6: Analyzing
+experiment_commit/sha256/t253/n2^20/w2^6
+                        time:   [541.73 µs 542.88 µs 543.85 µs]
+                        thrpt:  [7.1826 GiB/s 7.1954 GiB/s 7.2106 GiB/s]
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^14
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0071 s (2035 iterations)
+Benchmarking experiment_commit/sha256/baseline/n2^20/w2^14: Analyzing
+experiment_commit/sha256/baseline/n2^20/w2^14
+                        time:   [495.40 µs 499.80 µs 503.21 µs]
+                        thrpt:  [7.7626 GiB/s 7.8156 GiB/s 7.8851 GiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^14
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0110 s (2365 iterations)
+Benchmarking experiment_commit/sha256/standard/n2^20/w2^14: Analyzing
+experiment_commit/sha256/standard/n2^20/w2^14
+                        time:   [423.74 µs 424.44 µs 425.68 µs]
+                        thrpt:  [9.1765 GiB/s 9.2033 GiB/s 9.2185 GiB/s]
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^14
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0282 s (1430 iterations)
+Benchmarking experiment_commit/sha256/t8/n2^20/w2^14: Analyzing
+experiment_commit/sha256/t8/n2^20/w2^14
+                        time:   [718.43 µs 720.17 µs 721.74 µs]
+                        thrpt:  [5.4122 GiB/s 5.4240 GiB/s 5.4372 GiB/s]
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^14
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^14: Collecting 10 samples in estimated 1.0079 s (3080 iterations)
+Benchmarking experiment_commit/sha256/t253/n2^20/w2^14: Analyzing
+experiment_commit/sha256/t253/n2^20/w2^14
+                        time:   [326.94 µs 333.50 µs 343.18 µs]
+                        thrpt:  [11.382 GiB/s 11.713 GiB/s 11.948 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^6
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (1.9M iterations)
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^6: Analyzing
+experiment_verify/sha256/baseline/n2^20/w2^6
+                        time:   [553.61 ns 560.82 ns 566.89 ns]
+                        thrpt:  [1.7640 Melem/s 1.7831 Melem/s 1.8063 Melem/s]
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^6
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (1.8M iterations)
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^6: Analyzing
+experiment_verify/sha256/standard/n2^20/w2^6
+                        time:   [543.33 ns 555.11 ns 560.69 ns]
+                        thrpt:  [1.7835 Melem/s 1.8015 Melem/s 1.8405 Melem/s]
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^6
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (1.8M iterations)
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^6: Analyzing
+experiment_verify/sha256/t8/n2^20/w2^6
+                        time:   [547.50 ns 549.15 ns 550.56 ns]
+                        thrpt:  [1.8163 Melem/s 1.8210 Melem/s 1.8265 Melem/s]
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^6
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (2.0M iterations)
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^6: Analyzing
+experiment_verify/sha256/t253/n2^20/w2^6
+                        time:   [498.85 ns 500.04 ns 501.35 ns]
+                        thrpt:  [1.9946 Melem/s 1.9998 Melem/s 2.0046 Melem/s]
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^14
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0006 s (44k iterations)
+Benchmarking experiment_verify/sha256/baseline/n2^20/w2^14: Analyzing
+experiment_verify/sha256/baseline/n2^20/w2^14
+                        time:   [22.538 µs 22.623 µs 22.684 µs]
+                        thrpt:  [44.084 Kelem/s 44.202 Kelem/s 44.369 Kelem/s]
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^14
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0002 s (44k iterations)
+Benchmarking experiment_verify/sha256/standard/n2^20/w2^14: Analyzing
+experiment_verify/sha256/standard/n2^20/w2^14
+                        time:   [22.488 µs 22.545 µs 22.608 µs]
+                        thrpt:  [44.232 Kelem/s 44.356 Kelem/s 44.467 Kelem/s]
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^14
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0008 s (25k iterations)
+Benchmarking experiment_verify/sha256/t8/n2^20/w2^14: Analyzing
+experiment_verify/sha256/t8/n2^20/w2^14
+                        time:   [39.872 µs 40.038 µs 40.183 µs]
+                        thrpt:  [24.886 Kelem/s 24.976 Kelem/s 25.080 Kelem/s]
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^14
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^14: Collecting 10 samples in estimated 1.0003 s (57k iterations)
+Benchmarking experiment_verify/sha256/t253/n2^20/w2^14: Analyzing
+experiment_verify/sha256/t253/n2^20/w2^14
+                        time:   [17.071 µs 17.211 µs 17.346 µs]
+                        thrpt:  [57.651 Kelem/s 58.101 Kelem/s 58.579 Kelem/s]
+
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^6
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0796 s (495 iterations)
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^6: Analyzing
+experiment_commit/sha3_256/baseline/n2^20/w2^6
+                        time:   [2.2161 ms 2.2328 ms 2.2667 ms]
+                        thrpt:  [1.7233 GiB/s 1.7495 GiB/s 1.7627 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^6
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0509 s (1045 iterations)
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^6: Analyzing
+experiment_commit/sha3_256/standard/n2^20/w2^6
+                        time:   [993.74 µs 996.62 µs 1.0025 ms]
+                        thrpt:  [3.8966 GiB/s 3.9195 GiB/s 3.9309 GiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^6
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0609 s (770 iterations)
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^6: Analyzing
+experiment_commit/sha3_256/t8/n2^20/w2^6
+                        time:   [1.3750 ms 1.3772 ms 1.3791 ms]
+                        thrpt:  [2.8324 GiB/s 2.8364 GiB/s 2.8409 GiB/s]
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^14
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0562 s (880 iterations)
+Benchmarking experiment_commit/sha3_256/baseline/n2^20/w2^14: Analyzing
+experiment_commit/sha3_256/baseline/n2^20/w2^14
+                        time:   [1.1939 ms 1.1970 ms 1.2006 ms]
+                        thrpt:  [3.2537 GiB/s 3.2635 GiB/s 3.2718 GiB/s]
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^14
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0082 s (1815 iterations)
+Benchmarking experiment_commit/sha3_256/standard/n2^20/w2^14: Analyzing
+experiment_commit/sha3_256/standard/n2^20/w2^14
+                        time:   [555.54 µs 557.03 µs 558.31 µs]
+                        thrpt:  [6.9966 GiB/s 7.0126 GiB/s 7.0315 GiB/s]
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^14
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0377 s (935 iterations)
+Benchmarking experiment_commit/sha3_256/t8/n2^20/w2^14: Analyzing
+experiment_commit/sha3_256/t8/n2^20/w2^14
+                        time:   [1.1069 ms 1.1088 ms 1.1109 ms]
+                        thrpt:  [3.5163 GiB/s 3.5231 GiB/s 3.5291 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^6
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0001 s (345k iterations)
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^6: Analyzing
+experiment_verify/sha3_256/baseline/n2^20/w2^6
+                        time:   [2.8959 µs 2.9034 µs 2.9123 µs]
+                        thrpt:  [343.37 Kelem/s 344.42 Kelem/s 345.31 Kelem/s]
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^6
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0001 s (477k iterations)
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^6: Analyzing
+experiment_verify/sha3_256/standard/n2^20/w2^6
+                        time:   [2.0869 µs 2.0943 µs 2.1020 µs]
+                        thrpt:  [475.75 Kelem/s 477.50 Kelem/s 479.17 Kelem/s]
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^6
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0001 s (472k iterations)
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^6: Analyzing
+experiment_verify/sha3_256/t8/n2^20/w2^6
+                        time:   [2.0964 µs 2.1031 µs 2.1116 µs]
+                        thrpt:  [473.58 Kelem/s 475.50 Kelem/s 477.01 Kelem/s]
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^14
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0022 s (14k iterations)
+Benchmarking experiment_verify/sha3_256/baseline/n2^20/w2^14: Analyzing
+experiment_verify/sha3_256/baseline/n2^20/w2^14
+                        time:   [73.014 µs 73.269 µs 73.526 µs]
+                        thrpt:  [13.601 Kelem/s 13.648 Kelem/s 13.696 Kelem/s]
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^14
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0019 s (15k iterations)
+Benchmarking experiment_verify/sha3_256/standard/n2^20/w2^14: Analyzing
+experiment_verify/sha3_256/standard/n2^20/w2^14
+                        time:   [64.631 µs 64.935 µs 65.403 µs]
+                        thrpt:  [15.290 Kelem/s 15.400 Kelem/s 15.472 Kelem/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^14
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0035 s (12k iterations)
+Benchmarking experiment_verify/sha3_256/t8/n2^20/w2^14: Analyzing
+experiment_verify/sha3_256/t8/n2^20/w2^14
+                        time:   [85.419 µs 85.643 µs 85.919 µs]
+                        thrpt:  [11.639 Kelem/s 11.676 Kelem/s 11.707 Kelem/s]
+
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^6
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0446 s (715 iterations)
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^6: Analyzing
+experiment_commit/blake3/baseline/n2^20/w2^6
+                        time:   [1.4562 ms 1.4608 ms 1.4660 ms]
+                        thrpt:  [2.6646 GiB/s 2.6740 GiB/s 2.6825 GiB/s]
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^6
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0299 s (1705 iterations)
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^6: Analyzing
+experiment_commit/blake3/standard/n2^20/w2^6
+                        time:   [602.90 µs 604.98 µs 607.92 µs]
+                        thrpt:  [6.4256 GiB/s 6.4568 GiB/s 6.4791 GiB/s]
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^6
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0437 s (1265 iterations)
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^6: Analyzing
+experiment_commit/blake3/t8/n2^20/w2^6
+                        time:   [833.01 µs 834.45 µs 836.61 µs]
+                        thrpt:  [4.6691 GiB/s 4.6812 GiB/s 4.6893 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^14
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0202 s (1045 iterations)
+Benchmarking experiment_commit/blake3/baseline/n2^20/w2^14: Analyzing
+experiment_commit/blake3/baseline/n2^20/w2^14
+                        time:   [974.39 µs 975.31 µs 975.95 µs]
+                        thrpt:  [4.0025 GiB/s 4.0051 GiB/s 4.0089 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^14
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0200 s (2200 iterations)
+Benchmarking experiment_commit/blake3/standard/n2^20/w2^14: Analyzing
+experiment_commit/blake3/standard/n2^20/w2^14
+                        time:   [462.74 µs 463.11 µs 463.45 µs]
+                        thrpt:  [8.4287 GiB/s 8.4349 GiB/s 8.4416 GiB/s]
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^14
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0086 s (1375 iterations)
+Benchmarking experiment_commit/blake3/t8/n2^20/w2^14: Analyzing
+experiment_commit/blake3/t8/n2^20/w2^14
+                        time:   [731.57 µs 732.36 µs 732.96 µs]
+                        thrpt:  [5.3294 GiB/s 5.3338 GiB/s 5.3396 GiB/s]
+
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^6
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (698k iterations)
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^6: Analyzing
+experiment_verify/blake3/baseline/n2^20/w2^6
+                        time:   [1.4342 µs 1.4380 µs 1.4447 µs]
+                        thrpt:  [692.20 Kelem/s 695.43 Kelem/s 697.23 Kelem/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^6
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^6: Collecting 10 samples in estimated 1.0001 s (989k iterations)
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^6: Analyzing
+experiment_verify/blake3/standard/n2^20/w2^6
+                        time:   [1.0068 µs 1.0505 µs 1.1394 µs]
+                        thrpt:  [877.65 Kelem/s 951.96 Kelem/s 993.28 Kelem/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^6
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^6: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^6: Collecting 10 samples in estimated 1.0000 s (1.1M iterations)
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^6: Analyzing
+experiment_verify/blake3/t8/n2^20/w2^6
+                        time:   [948.92 ns 950.98 ns 953.70 ns]
+                        thrpt:  [1.0485 Melem/s 1.0515 Melem/s 1.0538 Melem/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^14
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^14: Collecting 10 samples in estimated 1.0006 s (37k iterations)
+Benchmarking experiment_verify/blake3/baseline/n2^20/w2^14: Analyzing
+experiment_verify/blake3/baseline/n2^20/w2^14
+                        time:   [26.669 µs 26.815 µs 26.956 µs]
+                        thrpt:  [37.097 Kelem/s 37.292 Kelem/s 37.497 Kelem/s]
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^14
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^14: Collecting 10 samples in estimated 1.0004 s (37k iterations)
+Benchmarking experiment_verify/blake3/standard/n2^20/w2^14: Analyzing
+experiment_verify/blake3/standard/n2^20/w2^14
+                        time:   [26.678 µs 26.816 µs 26.918 µs]
+                        thrpt:  [37.150 Kelem/s 37.292 Kelem/s 37.485 Kelem/s]
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^14
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^14: Warming up for 200.00 ms
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^14: Collecting 10 samples in estimated 1.0012 s (23k iterations)
+Benchmarking experiment_verify/blake3/t8/n2^20/w2^14: Analyzing
+experiment_verify/blake3/t8/n2^20/w2^14
+                        time:   [43.756 µs 43.802 µs 43.841 µs]
+                        thrpt:  [22.810 Kelem/s 22.830 Kelem/s 22.854 Kelem/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low severe
+
+
+Source snapshot SHA-256 (sorted paths plus contents, Cargo.toml/Cargo.lock/src/*.rs/examples/perf_sweep.rs/benches/optimized.rs): c588569d2feb7a14b7e180a2eed501e0b6646f72883fc233fa19f6d823d0e0aa
+SHA-256 of Criterion executable: 4e96a635463ce1ee9783873fcc16d0bb1532a69e766ede3ddc3730ba711e8539
+Compiler: rustc 1.96.0 (ac68faa20 2026-05-25).
+RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS: unset. Default parallel feature; RAYON_NUM_THREADS=4.
+Command: RAYON_NUM_THREADS=4 MERKLE_TOTAL_LOGS=20 MERKLE_WIDTH_LOGS=6,14 MERKLE_SCHEMES=baseline,standard,t253,t8 MERKLE_OPERATIONS=commit,verify cargo bench --locked --bench optimized -- ^experiment_(commit|verify)/ --save-baseline optimized-v1

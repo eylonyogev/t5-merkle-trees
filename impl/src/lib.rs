@@ -9,6 +9,11 @@
 //! the concatenated 64-byte child digests. These roots differ from version 0.1.
 //! The protocol must authenticate the suite, leaf count, width, and queried index.
 //!
+//! [`OptimizedMerkleTree`] separately provides batched hashing and coarse parallel
+//! scheduling. [`LeafMode::Standard`] preserves the baseline roots; other modes
+//! are experimental whole-record constructions and additionally require an
+//! authenticated mode. See `EXPERIMENTS.md` for definitions and assumptions.
+//!
 //! ```
 //! use binary_merkle_tree::{MerkleTree, Sha256};
 //! let matrix: Vec<u32> = (0..1024).collect();
@@ -25,6 +30,12 @@
 
 mod hash;
 pub use hash::{Blake3, Digest, HashFunction, Sha3_256, Sha256};
+mod optimized_hash;
+pub use optimized_hash::OptimizedHash;
+mod experimental;
+pub use experimental::{LeafMode, LeafPlan, ResearchHash};
+mod optimized;
+pub use optimized::{OptimizedCommitment, OptimizedMerkleTree};
 
 use p3_maybe_rayon::prelude::*;
 use p3_symmetric::{CryptographicHasher, PseudoCompressionFunction};
@@ -40,6 +51,7 @@ pub enum Error {
     InvalidProofLength,
     RootMismatch,
     AllocationFailed,
+    UnsupportedMode,
 }
 
 impl fmt::Display for Error {
@@ -53,6 +65,7 @@ impl fmt::Display for Error {
             Self::InvalidProofLength => "proof has a missing or surplus sibling digest",
             Self::RootMismatch => "opening does not match the committed root",
             Self::AllocationFailed => "unable to allocate tree or proof storage",
+            Self::UnsupportedMode => "leaf construction is not available for this hash suite",
         })
     }
 }

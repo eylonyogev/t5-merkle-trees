@@ -1,0 +1,138 @@
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+    Finished `release` profile [optimized] target(s) in 3.07s
+     Running `target/release/examples/perf_sweep`
+perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=150 max_digest_mib=256 allow_large=false
+sha256/baseline/n2^20/w2^0
+sha256/standard/n2^20/w2^0
+sha256/fixed-md/n2^20/w2^0
+sha256/t5/n2^20/w2^0
+sha256/t8/n2^20/w2^0
+sha256/abr3/n2^20/w2^0
+sha256/t253/n2^20/w2^0
+sha256/baseline/n2^20/w2^4
+sha256/standard/n2^20/w2^4
+sha256/fixed-md/n2^20/w2^4
+sha256/t5/n2^20/w2^4
+sha256/t8/n2^20/w2^4
+sha256/abr3/n2^20/w2^4
+sha256/t253/n2^20/w2^4
+sha256/baseline/n2^20/w2^6
+sha256/standard/n2^20/w2^6
+sha256/fixed-md/n2^20/w2^6
+sha256/t5/n2^20/w2^6
+sha256/t8/n2^20/w2^6
+sha256/abr3/n2^20/w2^6
+sha256/t253/n2^20/w2^6
+sha256/baseline/n2^20/w2^8
+sha256/standard/n2^20/w2^8
+sha256/fixed-md/n2^20/w2^8
+sha256/t5/n2^20/w2^8
+sha256/t8/n2^20/w2^8
+sha256/abr3/n2^20/w2^8
+sha256/t253/n2^20/w2^8
+sha256/baseline/n2^20/w2^10
+sha256/standard/n2^20/w2^10
+sha256/fixed-md/n2^20/w2^10
+sha256/t5/n2^20/w2^10
+sha256/t8/n2^20/w2^10
+sha256/abr3/n2^20/w2^10
+sha256/t253/n2^20/w2^10
+sha256/baseline/n2^20/w2^14
+sha256/standard/n2^20/w2^14
+sha256/fixed-md/n2^20/w2^14
+sha256/t5/n2^20/w2^14
+sha256/t8/n2^20/w2^14
+sha256/abr3/n2^20/w2^14
+sha256/t253/n2^20/w2^14
+sha3_256/baseline/n2^20/w2^0
+sha3_256/standard/n2^20/w2^0
+sha3_256/fixed-md/n2^20/w2^0
+sha3_256/t5/n2^20/w2^0
+sha3_256/t8/n2^20/w2^0
+sha3_256/abr3/n2^20/w2^0
+skip sha3_256/t253/n2^20/w2^0: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^4
+sha3_256/standard/n2^20/w2^4
+sha3_256/fixed-md/n2^20/w2^4
+sha3_256/t5/n2^20/w2^4
+sha3_256/t8/n2^20/w2^4
+sha3_256/abr3/n2^20/w2^4
+skip sha3_256/t253/n2^20/w2^4: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^6
+sha3_256/standard/n2^20/w2^6
+sha3_256/fixed-md/n2^20/w2^6
+sha3_256/t5/n2^20/w2^6
+sha3_256/t8/n2^20/w2^6
+sha3_256/abr3/n2^20/w2^6
+skip sha3_256/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^8
+sha3_256/standard/n2^20/w2^8
+sha3_256/fixed-md/n2^20/w2^8
+sha3_256/t5/n2^20/w2^8
+sha3_256/t8/n2^20/w2^8
+sha3_256/abr3/n2^20/w2^8
+skip sha3_256/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^10
+sha3_256/standard/n2^20/w2^10
+sha3_256/fixed-md/n2^20/w2^10
+sha3_256/t5/n2^20/w2^10
+sha3_256/t8/n2^20/w2^10
+sha3_256/abr3/n2^20/w2^10
+skip sha3_256/t253/n2^20/w2^10: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^14
+sha3_256/standard/n2^20/w2^14
+sha3_256/fixed-md/n2^20/w2^14
+sha3_256/t5/n2^20/w2^14
+sha3_256/t8/n2^20/w2^14
+sha3_256/abr3/n2^20/w2^14
+skip sha3_256/t253/n2^20/w2^14: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^0
+blake3/standard/n2^20/w2^0
+blake3/fixed-md/n2^20/w2^0
+blake3/t5/n2^20/w2^0
+blake3/t8/n2^20/w2^0
+blake3/abr3/n2^20/w2^0
+skip blake3/t253/n2^20/w2^0: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^4
+blake3/standard/n2^20/w2^4
+blake3/fixed-md/n2^20/w2^4
+blake3/t5/n2^20/w2^4
+blake3/t8/n2^20/w2^4
+blake3/abr3/n2^20/w2^4
+skip blake3/t253/n2^20/w2^4: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^6
+blake3/standard/n2^20/w2^6
+blake3/fixed-md/n2^20/w2^6
+blake3/t5/n2^20/w2^6
+blake3/t8/n2^20/w2^6
+blake3/abr3/n2^20/w2^6
+skip blake3/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^8
+blake3/standard/n2^20/w2^8
+blake3/fixed-md/n2^20/w2^8
+blake3/t5/n2^20/w2^8
+blake3/t8/n2^20/w2^8
+blake3/abr3/n2^20/w2^8
+skip blake3/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^10
+blake3/standard/n2^20/w2^10
+blake3/fixed-md/n2^20/w2^10
+blake3/t5/n2^20/w2^10
+blake3/t8/n2^20/w2^10
+blake3/abr3/n2^20/w2^10
+skip blake3/t253/n2^20/w2^10: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^14
+blake3/standard/n2^20/w2^14
+blake3/fixed-md/n2^20/w2^14
+blake3/t5/n2^20/w2^14
+blake3/t8/n2^20/w2^14
+blake3/abr3/n2^20/w2^14
+skip blake3/t253/n2^20/w2^14: leaf construction is not available for this hash suite
+
+Final source snapshot: final SHA3 experimental oracle batching included.
+Source snapshot SHA-256 (sorted paths plus contents, Cargo.toml/Cargo.lock/src/*.rs/examples/perf_sweep.rs/benches/optimized.rs): c588569d2feb7a14b7e180a2eed501e0b6646f72883fc233fa19f6d823d0e0aa
+SHA-256 of perf_sweep executable: a272c44e48eb59f4dae9c05250059d1188f5e30f419c9ce24930ef32ac1a7029
+Compiler: rustc 1.96.0 (ac68faa20 2026-05-25).
+RUSTFLAGS and CARGO_ENCODED_RUSTFLAGS: unset.
+Default parallel feature; RAYON_NUM_THREADS=4.
+Command: RAYON_NUM_THREADS=4 MERKLE_SWEEP_MS=150 MERKLE_SWEEP_SAMPLES=7 cargo run --release --locked --example perf_sweep

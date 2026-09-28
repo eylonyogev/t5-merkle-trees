@@ -12,6 +12,10 @@ parallel = ["p3-maybe-rayon/parallel"]
 
 [dependencies]
 sha3 = "0.11"
+sha2 = "=0.11.0"
+# The optimized batching implementation uses BLAKE3's public, unstable platform API.
+blake3 = "=1.8.5"
+keccak = { version = "=0.2.0", features = ["parallel"] }
 bytemuck = "1.25"
 p3-sha256 = "=0.6.3"
 p3-blake3 = "=0.6.3"
@@ -24,11 +28,13 @@ criterion = { version = "0.5", default-features = false, features = ["cargo_benc
 p3-merkle-tree = "=0.6.3"
 p3-matrix = "=0.6.3"
 p3-commit = "=0.6.3"
-sha2 = "0.11"
-blake3 = "1.8"
 
 [[bench]]
 name = "merkle"
+harness = false
+
+[[bench]]
+name = "optimized"
 harness = false
 
 [profile.release]

@@ -1,0 +1,234 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.228
+   Compiling autocfg v1.5.1
+   Compiling crossbeam-utils v0.8.22
+   Compiling either v1.16.0
+   Compiling crossbeam-epoch v0.9.20
+   Compiling serde v1.0.228
+   Compiling crossbeam-deque v0.8.7
+   Compiling rayon-core v1.13.0
+   Compiling paste v1.0.15
+   Compiling rand_core v0.10.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tracing-core v0.1.36
+   Compiling cfg-if v1.0.4
+   Compiling scopeguard v1.2.0
+   Compiling libc v0.2.186
+   Compiling typenum v1.20.1
+   Compiling rand v0.10.3
+   Compiling itertools v0.15.0
+   Compiling lock_api v0.4.14
+   Compiling num-traits v0.2.19
+   Compiling spin v0.12.3
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling zerocopy v0.8.54
+   Compiling cc v1.2.67
+   Compiling const-oid v0.10.2
+   Compiling hybrid-array v0.4.13
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.150
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling ciborium-io v0.2.2
+   Compiling thiserror v2.0.21
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayref v0.3.9
+   Compiling blake3 v1.8.5
+   Compiling regex-syntax v0.8.11
+   Compiling clap_lex v1.1.0
+   Compiling digest v0.11.3
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling anstyle v1.0.14
+   Compiling plotters-backend v0.3.7
+   Compiling arrayvec v0.7.8
+   Compiling clap_builder v4.6.0
+   Compiling plotters-svg v0.3.7
+   Compiling itertools v0.10.5
+   Compiling same-file v1.0.6
+   Compiling cast v0.3.0
+   Compiling walkdir v2.5.0
+   Compiling anes v0.1.6
+   Compiling regex-automata v0.4.15
+   Compiling oorandom v11.1.5
+   Compiling once_cell v1.21.4
+   Compiling bytemuck v1.25.0
+   Compiling criterion-plot v0.5.0
+   Compiling clap v4.6.1
+   Compiling syn v2.0.119
+   Compiling syn v3.0.6
+   Compiling regex v1.13.0
+   Compiling rayon v1.12.0
+   Compiling cpufeatures v0.3.0
+   Compiling keccak v0.2.0
+   Compiling sha2 v0.11.0
+   Compiling is-terminal v0.4.17
+   Compiling sha3 v0.11.0
+   Compiling num-integer v0.1.47
+   Compiling plotters v0.3.7
+   Compiling num-bigint v0.5.1
+   Compiling thiserror-impl v2.0.21
+   Compiling p3-maybe-rayon v0.6.3
+   Compiling serde_derive v1.0.228
+   Compiling tracing-attributes v0.1.31
+   Compiling zerocopy-derive v0.8.54
+   Compiling tracing v0.1.44
+   Compiling p3-util v0.6.3
+   Compiling tinytemplate v1.2.1
+   Compiling p3-field v0.6.3
+   Compiling p3-symmetric v0.6.3
+   Compiling p3-matrix v0.6.3
+   Compiling p3-blake3 v0.6.3
+   Compiling p3-sha256 v0.6.3
+   Compiling half v2.7.1
+   Compiling binary-merkle-tree v0.2.0 (/Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl)
+   Compiling ciborium-ll v0.2.2
+   Compiling p3-dft v0.6.3
+   Compiling p3-multilinear-util v0.6.3
+   Compiling ciborium v0.2.2
+   Compiling criterion v0.5.1
+   Compiling p3-mds v0.6.3
+   Compiling p3-poseidon1 v0.6.3
+   Compiling p3-poseidon2 v0.6.3
+   Compiling p3-monty-31 v0.6.3
+   Compiling p3-challenger v0.6.3
+   Compiling p3-commit v0.6.3
+   Compiling p3-merkle-tree v0.6.3
+    Finished `release` profile [optimized] target(s) in 14.15s
+     Running `target/release/examples/perf_sweep`
+perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=5 target_ms=80 max_digest_mib=256 allow_large=false
+sha256/baseline/n2^20/w2^0
+sha256/standard/n2^20/w2^0
+sha256/fixed-md/n2^20/w2^0
+sha256/t5/n2^20/w2^0
+sha256/t8/n2^20/w2^0
+sha256/abr3/n2^20/w2^0
+sha256/t253/n2^20/w2^0
+sha256/baseline/n2^20/w2^4
+sha256/standard/n2^20/w2^4
+sha256/fixed-md/n2^20/w2^4
+sha256/t5/n2^20/w2^4
+sha256/t8/n2^20/w2^4
+sha256/abr3/n2^20/w2^4
+sha256/t253/n2^20/w2^4
+sha256/baseline/n2^20/w2^6
+sha256/standard/n2^20/w2^6
+sha256/fixed-md/n2^20/w2^6
+sha256/t5/n2^20/w2^6
+sha256/t8/n2^20/w2^6
+sha256/abr3/n2^20/w2^6
+sha256/t253/n2^20/w2^6
+sha256/baseline/n2^20/w2^8
+sha256/standard/n2^20/w2^8
+sha256/fixed-md/n2^20/w2^8
+sha256/t5/n2^20/w2^8
+sha256/t8/n2^20/w2^8
+sha256/abr3/n2^20/w2^8
+sha256/t253/n2^20/w2^8
+sha256/baseline/n2^20/w2^10
+sha256/standard/n2^20/w2^10
+sha256/fixed-md/n2^20/w2^10
+sha256/t5/n2^20/w2^10
+sha256/t8/n2^20/w2^10
+sha256/abr3/n2^20/w2^10
+sha256/t253/n2^20/w2^10
+sha256/baseline/n2^20/w2^14
+sha256/standard/n2^20/w2^14
+sha256/fixed-md/n2^20/w2^14
+sha256/t5/n2^20/w2^14
+sha256/t8/n2^20/w2^14
+sha256/abr3/n2^20/w2^14
+sha256/t253/n2^20/w2^14
+sha3_256/baseline/n2^20/w2^0
+sha3_256/standard/n2^20/w2^0
+sha3_256/fixed-md/n2^20/w2^0
+sha3_256/t5/n2^20/w2^0
+sha3_256/t8/n2^20/w2^0
+sha3_256/abr3/n2^20/w2^0
+skip sha3_256/t253/n2^20/w2^0: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^4
+sha3_256/standard/n2^20/w2^4
+sha3_256/fixed-md/n2^20/w2^4
+sha3_256/t5/n2^20/w2^4
+sha3_256/t8/n2^20/w2^4
+sha3_256/abr3/n2^20/w2^4
+skip sha3_256/t253/n2^20/w2^4: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^6
+sha3_256/standard/n2^20/w2^6
+sha3_256/fixed-md/n2^20/w2^6
+sha3_256/t5/n2^20/w2^6
+sha3_256/t8/n2^20/w2^6
+sha3_256/abr3/n2^20/w2^6
+skip sha3_256/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^8
+sha3_256/standard/n2^20/w2^8
+sha3_256/fixed-md/n2^20/w2^8
+sha3_256/t5/n2^20/w2^8
+sha3_256/t8/n2^20/w2^8
+sha3_256/abr3/n2^20/w2^8
+skip sha3_256/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^10
+sha3_256/standard/n2^20/w2^10
+sha3_256/fixed-md/n2^20/w2^10
+sha3_256/t5/n2^20/w2^10
+sha3_256/t8/n2^20/w2^10
+sha3_256/abr3/n2^20/w2^10
+skip sha3_256/t253/n2^20/w2^10: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^20/w2^14
+sha3_256/standard/n2^20/w2^14
+sha3_256/fixed-md/n2^20/w2^14
+sha3_256/t5/n2^20/w2^14
+sha3_256/t8/n2^20/w2^14
+sha3_256/abr3/n2^20/w2^14
+skip sha3_256/t253/n2^20/w2^14: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^0
+blake3/standard/n2^20/w2^0
+blake3/fixed-md/n2^20/w2^0
+blake3/t5/n2^20/w2^0
+blake3/t8/n2^20/w2^0
+blake3/abr3/n2^20/w2^0
+skip blake3/t253/n2^20/w2^0: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^4
+blake3/standard/n2^20/w2^4
+blake3/fixed-md/n2^20/w2^4
+blake3/t5/n2^20/w2^4
+blake3/t8/n2^20/w2^4
+blake3/abr3/n2^20/w2^4
+skip blake3/t253/n2^20/w2^4: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^6
+blake3/standard/n2^20/w2^6
+blake3/fixed-md/n2^20/w2^6
+blake3/t5/n2^20/w2^6
+blake3/t8/n2^20/w2^6
+blake3/abr3/n2^20/w2^6
+skip blake3/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^8
+blake3/standard/n2^20/w2^8
+blake3/fixed-md/n2^20/w2^8
+blake3/t5/n2^20/w2^8
+blake3/t8/n2^20/w2^8
+blake3/abr3/n2^20/w2^8
+skip blake3/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^10
+blake3/standard/n2^20/w2^10
+blake3/fixed-md/n2^20/w2^10
+blake3/t5/n2^20/w2^10
+blake3/t8/n2^20/w2^10
+blake3/abr3/n2^20/w2^10
+skip blake3/t253/n2^20/w2^10: leaf construction is not available for this hash suite
+blake3/baseline/n2^20/w2^14
+blake3/standard/n2^20/w2^14
+blake3/fixed-md/n2^20/w2^14
+blake3/t5/n2^20/w2^14
+blake3/t8/n2^20/w2^14
+blake3/abr3/n2^20/w2^14
+skip blake3/t253/n2^20/w2^14: leaf construction is not available for this hash suite
+
+
+Measurement binary: existing release perf_sweep, compiled before SHA3 experimental batch edits; no rebuild between representative-initial and scaling-initial.
+SHA-256 of executable: 7289c60b490e62d2ce4cf79d792cea795624f1305ff3f290dd88c367c18d428f
+Compiler: rustc 1.96.0 (ac68faa20 2026-05-25).
+RUSTFLAGS: unset. Default parallel feature; RAYON_NUM_THREADS=4.

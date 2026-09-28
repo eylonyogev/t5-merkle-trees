@@ -1,0 +1,55 @@
+perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=5 target_ms=120 max_digest_mib=256 allow_large=false
+sha256/baseline/n2^24/w2^8
+sha256/standard/n2^24/w2^8
+sha256/t8/n2^24/w2^8
+sha256/t253/n2^24/w2^8
+sha256/baseline/n2^24/w2^14
+sha256/standard/n2^24/w2^14
+sha256/t8/n2^24/w2^14
+sha256/t253/n2^24/w2^14
+sha256/baseline/n2^26/w2^8
+sha256/standard/n2^26/w2^8
+sha256/t8/n2^26/w2^8
+sha256/t253/n2^26/w2^8
+sha256/baseline/n2^26/w2^14
+sha256/standard/n2^26/w2^14
+sha256/t8/n2^26/w2^14
+sha256/t253/n2^26/w2^14
+sha3_256/baseline/n2^24/w2^8
+sha3_256/standard/n2^24/w2^8
+sha3_256/t8/n2^24/w2^8
+skip sha3_256/t253/n2^24/w2^8: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^24/w2^14
+sha3_256/standard/n2^24/w2^14
+sha3_256/t8/n2^24/w2^14
+skip sha3_256/t253/n2^24/w2^14: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^26/w2^8
+sha3_256/standard/n2^26/w2^8
+sha3_256/t8/n2^26/w2^8
+skip sha3_256/t253/n2^26/w2^8: leaf construction is not available for this hash suite
+sha3_256/baseline/n2^26/w2^14
+sha3_256/standard/n2^26/w2^14
+sha3_256/t8/n2^26/w2^14
+skip sha3_256/t253/n2^26/w2^14: leaf construction is not available for this hash suite
+blake3/baseline/n2^24/w2^8
+blake3/standard/n2^24/w2^8
+blake3/t8/n2^24/w2^8
+skip blake3/t253/n2^24/w2^8: leaf construction is not available for this hash suite
+blake3/baseline/n2^24/w2^14
+blake3/standard/n2^24/w2^14
+blake3/t8/n2^24/w2^14
+skip blake3/t253/n2^24/w2^14: leaf construction is not available for this hash suite
+blake3/baseline/n2^26/w2^8
+blake3/standard/n2^26/w2^8
+blake3/t8/n2^26/w2^8
+skip blake3/t253/n2^26/w2^8: leaf construction is not available for this hash suite
+blake3/baseline/n2^26/w2^14
+blake3/standard/n2^26/w2^14
+blake3/t8/n2^26/w2^14
+skip blake3/t253/n2^26/w2^14: leaf construction is not available for this hash suite
+
+Measurement binary: existing release perf_sweep, compiled before SHA3 experimental batch edits; no rebuild between representative-initial and scaling-initial.
+SHA-256 of executable: 7289c60b490e62d2ce4cf79d792cea795624f1305ff3f290dd88c367c18d428f
+Compiler: rustc 1.96.0 (ac68faa20 2026-05-25).
+RUSTFLAGS: unset. Default parallel feature; RAYON_NUM_THREADS=4.
+Scaling command: RAYON_NUM_THREADS=4 MERKLE_TOTAL_LOGS=24,26 MERKLE_WIDTH_LOGS=8,14 MERKLE_SCHEMES=baseline,standard,t253,t8 MERKLE_SWEEP_MS=120 target/release/examples/perf_sweep
