@@ -1,0 +1,40 @@
+[package]
+name = "binary-merkle-tree"
+version = "0.2.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "Single-matrix binary specialization of the Plonky3 0.6.3 Merkle baseline"
+
+[features]
+default = ["parallel"]
+parallel = ["p3-maybe-rayon/parallel"]
+
+[dependencies]
+sha3 = "0.11"
+bytemuck = "1.25"
+p3-sha256 = "=0.6.3"
+p3-blake3 = "=0.6.3"
+p3-symmetric = "=0.6.3"
+p3-maybe-rayon = "=0.6.3"
+p3-util = "=0.6.3"
+
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support", "plotters"] }
+p3-merkle-tree = "=0.6.3"
+p3-matrix = "=0.6.3"
+p3-commit = "=0.6.3"
+sha2 = "0.11"
+blake3 = "1.8"
+
+[[bench]]
+name = "merkle"
+harness = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1

@@ -5,6 +5,7 @@ t5-trees.pdf
 t5-trees.synctex.gz
 t5-trees.fdb_latexmk
 t5-trees.fls
+impl/target/
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
