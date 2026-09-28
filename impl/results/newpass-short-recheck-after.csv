@@ -1,0 +1,7 @@
+hash,scheme,operation,total_log,width_log,total_elements,elements_per_leaf,leaves,matrix_bytes,operation_input_bytes,digest_bytes,path_bytes,primitive,native_calls,abstract_leaf_calls,samples,iterations_per_sample,median_ns,p10_ns,p90_ns
+sha256,standard,verify,20,4,1048576,16,65536,4194304,64,4194272,512,SHA-256 compression,18,0,15,60471,496.895,495.189,501.061
+sha256,fixed-md,verify,20,4,1048576,16,65536,4194304,64,4194272,512,SHA-256 compression,18,1,15,67546,490.492,488.222,492.419
+sha256,t8,verify,20,4,1048576,16,65536,4194304,64,4194272,512,SHA-256 compression,22,3,15,55545,590.854,587.026,647.371
+blake3,standard,verify,20,4,1048576,16,65536,4194304,64,4194272,512,BLAKE3 compression,17,0,15,35513,960.313,949.192,968.544
+blake3,fixed-md,verify,20,4,1048576,16,65536,4194304,64,4194272,512,BLAKE3 compression,17,1,15,36135,961.386,955.086,965.058
+blake3,t8,verify,20,4,1048576,16,65536,4194304,64,4194272,512,BLAKE3 compression,19,3,15,31461,1114.147,1099.303,1120.150

@@ -1,0 +1,4 @@
+Final direct-leaf Criterion benchmark
+167e8465c43048d5e0d57cdde6e8c61816c2b7041f153fca30a616dbc43f0edf  /private/tmp/merkle-experimental-optimization-pass/optimized-bench-after
+COMMAND RAYON_NUM_THREADS=4 MERKLE_OPERATIONS=leaf MERKLE_SCHEMES=standard,t5,t8,t253 /private/tmp/merkle-experimental-optimization-pass/optimized-bench-after --bench '^experiment_leaf/(sha256|sha3_256|blake3)/(standard|t5|t8|t253)/u32_(64|16384)$' --save-baseline newpass-after > results/newpass-leaf-after.txt 2>&1
+Final BLAKE3 rows replaced by the corrected six-case run; see newpass-blake3-corrected-metadata.txt and newpass-leaf-blake3-corrected.txt. SHA rows retain the original final run.

@@ -1,0 +1,2 @@
+perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=15 target_ms=500 max_digest_mib=256 allow_large=false
+sha256/standard/n2^20/w2^0

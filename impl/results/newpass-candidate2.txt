@@ -1,0 +1,55 @@
+perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=150 max_digest_mib=256 allow_large=false
+sha256/standard/n2^20/w2^6
+sha256/fixed-md/n2^20/w2^6
+sha256/t5/n2^20/w2^6
+sha256/t8/n2^20/w2^6
+sha256/abr3/n2^20/w2^6
+sha256/t253/n2^20/w2^6
+sha256/standard/n2^20/w2^8
+sha256/fixed-md/n2^20/w2^8
+sha256/t5/n2^20/w2^8
+sha256/t8/n2^20/w2^8
+sha256/abr3/n2^20/w2^8
+sha256/t253/n2^20/w2^8
+sha256/standard/n2^20/w2^14
+sha256/fixed-md/n2^20/w2^14
+sha256/t5/n2^20/w2^14
+sha256/t8/n2^20/w2^14
+sha256/abr3/n2^20/w2^14
+sha256/t253/n2^20/w2^14
+sha3_256/standard/n2^20/w2^6
+sha3_256/fixed-md/n2^20/w2^6
+sha3_256/t5/n2^20/w2^6
+sha3_256/t8/n2^20/w2^6
+sha3_256/abr3/n2^20/w2^6
+skip sha3_256/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+sha3_256/standard/n2^20/w2^8
+sha3_256/fixed-md/n2^20/w2^8
+sha3_256/t5/n2^20/w2^8
+sha3_256/t8/n2^20/w2^8
+sha3_256/abr3/n2^20/w2^8
+skip sha3_256/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+sha3_256/standard/n2^20/w2^14
+sha3_256/fixed-md/n2^20/w2^14
+sha3_256/t5/n2^20/w2^14
+sha3_256/t8/n2^20/w2^14
+sha3_256/abr3/n2^20/w2^14
+skip sha3_256/t253/n2^20/w2^14: leaf construction is not available for this hash suite
+blake3/standard/n2^20/w2^6
+blake3/fixed-md/n2^20/w2^6
+blake3/t5/n2^20/w2^6
+blake3/t8/n2^20/w2^6
+blake3/abr3/n2^20/w2^6
+skip blake3/t253/n2^20/w2^6: leaf construction is not available for this hash suite
+blake3/standard/n2^20/w2^8
+blake3/fixed-md/n2^20/w2^8
+blake3/t5/n2^20/w2^8
+blake3/t8/n2^20/w2^8
+blake3/abr3/n2^20/w2^8
+skip blake3/t253/n2^20/w2^8: leaf construction is not available for this hash suite
+blake3/standard/n2^20/w2^14
+blake3/fixed-md/n2^20/w2^14
+blake3/t5/n2^20/w2^14
+blake3/t8/n2^20/w2^14
+blake3/abr3/n2^20/w2^14
+skip blake3/t253/n2^20/w2^14: leaf construction is not available for this hash suite

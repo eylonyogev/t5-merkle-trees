@@ -1,0 +1,73 @@
+Gnuplot not found, using plotters backend
+Benchmarking experiment_leaf/blake3/standard/u32_64
+Benchmarking experiment_leaf/blake3/standard/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/standard/u32_64: Collecting 10 samples in estimated 1.0000 s (4.8M iterations)
+Benchmarking experiment_leaf/blake3/standard/u32_64: Analyzing
+experiment_leaf/blake3/standard/u32_64
+                        time:   [200.28 ns 202.52 ns 204.45 ns]
+                        thrpt:  [1.1661 GiB/s 1.1773 GiB/s 1.1904 GiB/s]
+                 change:
+                        time:   [-4.2218% -3.0360% -1.8083%] (p = 0.00 < 0.05)
+                        thrpt:  [+1.8416% +3.1311% +4.4079%]
+                        Performance has improved.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+Benchmarking experiment_leaf/blake3/t5/u32_64
+Benchmarking experiment_leaf/blake3/t5/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t5/u32_64: Collecting 10 samples in estimated 1.0000 s (3.9M iterations)
+Benchmarking experiment_leaf/blake3/t5/u32_64: Analyzing
+experiment_leaf/blake3/t5/u32_64
+                        time:   [253.79 ns 254.66 ns 255.24 ns]
+                        thrpt:  [956.50 MiB/s 958.68 MiB/s 961.97 MiB/s]
+                 change:
+                        time:   [-4.1775% -3.2987% -2.3608%] (p = 0.00 < 0.05)
+                        thrpt:  [+2.4179% +3.4112% +4.3596%]
+                        Performance has improved.
+Benchmarking experiment_leaf/blake3/t8/u32_64
+Benchmarking experiment_leaf/blake3/t8/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t8/u32_64: Collecting 10 samples in estimated 1.0000 s (6.8M iterations)
+Benchmarking experiment_leaf/blake3/t8/u32_64: Analyzing
+experiment_leaf/blake3/t8/u32_64
+                        time:   [146.27 ns 146.80 ns 147.49 ns]
+                        thrpt:  [1.6165 GiB/s 1.6241 GiB/s 1.6300 GiB/s]
+                 change:
+                        time:   [-30.740% -30.169% -29.673%] (p = 0.00 < 0.05)
+                        thrpt:  [+42.193% +43.204% +44.384%]
+                        Performance has improved.
+Benchmarking experiment_leaf/blake3/standard/u32_16384
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Collecting 10 samples in estimated 1.0002 s (38k iterations)
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Analyzing
+experiment_leaf/blake3/standard/u32_16384
+                        time:   [26.267 µs 26.358 µs 26.536 µs]
+                        thrpt:  [2.3001 GiB/s 2.3156 GiB/s 2.3236 GiB/s]
+                 change:
+                        time:   [-6.0079% -5.0769% -4.1275%] (p = 0.00 < 0.05)
+                        thrpt:  [+4.3052% +5.3484% +6.3919%]
+                        Performance has improved.
+Benchmarking experiment_leaf/blake3/t5/u32_16384
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Collecting 10 samples in estimated 1.0023 s (19k iterations)
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Analyzing
+experiment_leaf/blake3/t5/u32_16384
+                        time:   [53.387 µs 53.519 µs 53.687 µs]
+                        thrpt:  [1.1369 GiB/s 1.1404 GiB/s 1.1433 GiB/s]
+                 change:
+                        time:   [-4.8323% -3.9207% -3.0224%] (p = 0.00 < 0.05)
+                        thrpt:  [+3.1166% +4.0807% +5.0777%]
+                        Performance has improved.
+Benchmarking experiment_leaf/blake3/t8/u32_16384
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Collecting 10 samples in estimated 1.0012 s (32k iterations)
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Analyzing
+experiment_leaf/blake3/t8/u32_16384
+                        time:   [31.186 µs 31.323 µs 31.423 µs]
+                        thrpt:  [1.9424 GiB/s 1.9486 GiB/s 1.9571 GiB/s]
+                 change:
+                        time:   [-5.6351% -4.7665% -3.8842%] (p = 0.00 < 0.05)
+                        thrpt:  [+4.0411% +5.0050% +5.9717%]
+                        Performance has improved.
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+

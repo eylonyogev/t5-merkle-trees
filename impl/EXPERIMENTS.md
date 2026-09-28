@@ -75,8 +75,9 @@ the papers do not prove their concrete security.
   block from the first 64; h2 fixes the chaining value to zero. These functions
   use BLAKE3 compression but are not standard unkeyed BLAKE3 hashes.
 
-`experimental.rs` is the definitive byte-level specification: role constants,
-endianness, tags, counters, padding, flags and stage placement.
+`src/experimental.rs` specifies the construction schedules and stage placement.
+The modules in `src/experimental/` define each backend's role encoding,
+endianness, tags, counters, padding and flags.
 
 ### T253: restricted T8 for SHA-256
 
@@ -117,12 +118,33 @@ Standard hashing batches SHA3 via `keccak::ParState1600`, including two messages
 on the AArch64 SHA3 backend with portable fallback, and BLAKE3 through native
 hash_many kernels. Full BLAKE3 leaf slices expose its wide-input chunk SIMD,
 which the baseline's 512-byte updates conceal. SHA-256 uses its native hardware
-backend. Experimental SHA3 modes also batch corresponding stages across records;
-single-record verification batches independent gadget branches. BLAKE3's
-variable-chaining-value experimental oracles remain scalar: its fixed-key
-hash_many interface cannot directly batch those calls. The crate forbids unsafe
-Rust; dependency backends contain their own
-intrinsics. BLAKE3 is pinned to 1.8.5 because its public platform API is unstable.
+backend. Experimental backends additionally use:
+
+- **SHA-256:** direct two-block encoding for h3, interleaved independent
+  compressions with AArch64 SHA2 instructions, a fused T253 gadget that retains
+  intermediate words in vector registers, and native-word chaining for T253
+  tails.
+- **SHA3:** one backend dispatch per leaf or batch, direct tagged-state
+  encoding, and two-record batching. Single-record T5/T8 verification overlaps
+  independent branches of the next gadget with the current gadget's final
+  permutation. The dependent chain still runs in order.
+- **BLAKE3:** four-record NEON compression with independently variable chaining
+  values and counters. Fused four-record T8 keeps intermediate digests and the
+  chaining state in vector form across stages. Uniform-role, fixed-CV calls
+  also use upstream hash_many.
+  Single-record T5/T8 verification precomputes independent branches in bounded
+  windows before completing the dependent chain. One-stage leaves use small
+  gadget buffers; one or two leftover compressions use upstream single-message
+  calls. Parallel jobs contain at least four records to keep the four-lane
+  kernel occupied.
+
+Complete stages borrow input directly where possible; only incomplete stages
+need zero-filled scratch. These changes preserve every mode's previous digest,
+domain separation and logical compression count. CPU-specific kernels have
+runtime feature checks and portable fallbacks. The crate denies unsafe Rust
+except in the isolated `blake3_simd.rs` and `sha256_simd.rs` modules, whose safe
+interfaces check sizes before entering bounded architecture intrinsics. BLAKE3
+is pinned to 1.8.5 because its public platform API is unstable.
 
 Storage is still `32(2L-1)` digest bytes. Contiguity reduces allocation count,
 not digest count. Recommit methods reuse storage for exactly the same geometry
@@ -131,4 +153,6 @@ silently credited as a hash optimization. Verification allocates no heap memory
 on little-endian hosts; u32 conversion on big-endian hosts uses a byte buffer.
 
 See [OPTIMIZED_BENCHMARKS.md](OPTIMIZED_BENCHMARKS.md) for commands and methodology,
-and [RESULTS.md](RESULTS.md) for measured outcomes.
+[RESULTS.md](RESULTS.md) for the initial comparison, and
+[NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) for the subsequent implementation
+optimizations and updated comparisons with optimized standard hashing.

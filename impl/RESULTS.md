@@ -1,5 +1,7 @@
 # Optimization measurements
 
+For the subsequent T5/T8/T253 kernel optimization pass, see [the new results report](NEWPASS_RESULTS.md) and [updated plots](results/newpass-plots/README.md). The measurements below are retained as the first-pass record.
+
 The root-compatible `standard` optimized tree committed faster than the unchanged
 Plonky3 adaptation in all 24 final sampled hash/shape combinations: **1.11–1.47×
 for SHA-256, 2.05–2.39× for SHA3-256, and 1.99–2.92× for BLAKE3**. These are
@@ -14,6 +16,11 @@ T8, and ABR3 did not beat optimized standard commitment in this sweep, including
 the final SIMD batching of experimental SHA3 calls. Both positive and negative
 results are retained: fewer abstract oracle calls need not mean less native
 work or lower latency.
+
+[Plots of T5/T8/T253 relative to optimized standard](results/plots/README.md)
+show commitment and verification separately across all three hashes, including
+the cases that are slower. PNG, SVG, exact ratios and a reproduction script
+are included.
 
 ## Method and scope
 

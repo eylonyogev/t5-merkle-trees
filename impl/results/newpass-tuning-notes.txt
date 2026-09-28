@@ -1,0 +1,25 @@
+Exploratory kernel diagnostics (not the final performance comparison)
+
+The BLAKE3 kernel agent compared the upstream single-message compressor,
+an experimental intra-state NEON compressor, and a four-independent-message
+NEON compressor before removing the slower intra-state code.
+
+Probe: /tmp/b3_probe.rs, compiled binary /tmp/b3_probe on the measurement host.
+Fixed independent-looking keys, blocks, and 64-bit counters; flags 19.
+black_box on inputs; three repetitions of approximately 200 ms per operation.
+Reported nanoseconds per useful compression:
+               upstream  intra-state NEON  four populated lanes  two useful lanes
+repetition 1     48.79          50.40               23.88                49.09
+repetition 2     43.80          50.61               23.78                50.94
+repetition 3     43.67          50.18               23.92                48.91
+median           43.80          50.40               23.88                49.09
+
+This diagnosed two candidate1 regressions: an inferior single-message kernel
+and a tree scheduler handing the four-lane backend only two rows for wide
+leaves. The selected implementation uses the upstream single compressor and
+at least four rows per BLAKE3 parallel task.
+
+These are development diagnostics, not independently reproducible published
+benchmarks: the probe includes a module by path, and that module has changed
+since the measurements. Final, reproducible matrix sweeps and direct-leaf
+Criterion measurements are the evidence used for performance claims.

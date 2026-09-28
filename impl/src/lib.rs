@@ -26,7 +26,13 @@
 // Tree construction adapted from Plonky3, Copyright (c) 2022 The Plonky3 Authors.
 // Licensed under MIT; see LICENSE-MIT and UPSTREAM.md.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
+
+// Architecture intrinsics are confined to these modules' checked, safe interfaces.
+#[allow(unsafe_code)]
+mod blake3_simd;
+#[allow(unsafe_code)]
+mod sha256_simd;
 
 mod hash;
 pub use hash::{Blake3, Digest, HashFunction, Sha3_256, Sha256};

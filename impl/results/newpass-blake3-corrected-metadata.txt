@@ -1,0 +1,19 @@
+FINAL CORRECTED BLAKE3 BACKEND SNAPSHOT 2026-09-28T14:36:39.503151
+SHA-256 and SHA3-256 final rows retain the prior frozen full-sweep binary; every BLAKE3 row including standard is replaced from this corrected binary. Native call model and all mode outputs remain unchanged.
+2c893451c8c19d462cd0b856f75b199ceb8e59aa4aa2c84e4f04b91642dbece6  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/Cargo.toml
+43abcd41c3338cd7b2fb5a6918609a46153119642b68b4865e1010f6884d807a  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/Cargo.lock
+2d6ce216015b128d32f4a5b42f7f5cd7f6c1dea0355346d17534ed31ee518644  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/blake3_simd.rs
+50cf9bffb30146f377ca8632e6cbb9270221d6cb3203076c10f0ef67a7fe3ab8  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/experimental/blake3_backend.rs
+c601fca1827c75533af3a35cc55bb7a3cae79a70dfff612f3c96b15455ce6523  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/experimental/sha256_backend.rs
+2b93a71bbd38879a1dba847b9c237b1266ac5ba413adacd65270ea28167e34ca  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/experimental/sha3_backend.rs
+f1c811934d847848d335737f7d5635fb344f42d73596d781b37f2b3e2e4a92c9  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/experimental.rs
+bd2cade0e078f984f9fa422705dc4e33a9e444dd74a1b80069ef812011c0223f  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/hash.rs
+f568f254fe9bd2ecabb5e884659153ee6f9e55aad92c819bb92e436fcf1097d8  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/lib.rs
+caeebe956ea05b3a395862e86a6e07899690c002de2a091a63d16f13c3cb080c  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/optimized.rs
+07703b1e5110deee0f300a70fd6812c18aa3a584cc52eb633dbe3d89d9090c95  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/optimized_hash.rs
+ea93982995e3d52b05b2dae37f1dd473dc432b87491e7f2f9d6d3248350892f9  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/sha256_simd.rs
+27df0f948070d492d62e6f8109d339b2bef14150680111270fea53a104c30de8  /private/tmp/merkle-experimental-optimization-pass/perf_sweep-after-short-fix
+e6dfd42d45dc9bd93cd6de2400671159aed8cd01f8783d42de90721a0dc5bb2f  /private/tmp/merkle-experimental-optimization-pass/optimized-bench-after-short-fix
+COMMAND RAYON_NUM_THREADS=4 MERKLE_HASHES=blake3 MERKLE_SCHEMES=standard,fixed-md,t5,t8,abr3 MERKLE_SWEEP_MS=150 MERKLE_SWEEP_SAMPLES=7 MERKLE_TOTAL_LOGS=20 MERKLE_WIDTH_LOGS=0,4,6,8,10,14 /private/tmp/merkle-experimental-optimization-pass/perf_sweep-after-short-fix > results/newpass-blake3-corrected.csv 2> results/newpass-blake3-corrected.txt
+COMMAND RAYON_NUM_THREADS=4 MERKLE_HASHES=blake3 MERKLE_SCHEMES=standard,fixed-md,t5,t8,abr3 MERKLE_SWEEP_MS=150 MERKLE_SWEEP_SAMPLES=7 MERKLE_TOTAL_LOGS=26 MERKLE_WIDTH_LOGS=8,14 /private/tmp/merkle-experimental-optimization-pass/perf_sweep-after-short-fix > results/newpass-scaling-blake3-corrected.csv 2> results/newpass-scaling-blake3-corrected.txt
+COMMAND RAYON_NUM_THREADS=4 MERKLE_HASHES=blake3 MERKLE_OPERATIONS=leaf MERKLE_SCHEMES=standard,t5,t8 /private/tmp/merkle-experimental-optimization-pass/optimized-bench-after-short-fix --bench '^experiment_leaf/blake3/(standard|t5|t8)/u32_(64|16384)$' --save-baseline newpass-after > results/newpass-leaf-blake3-corrected.txt 2>&1

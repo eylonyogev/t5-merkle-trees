@@ -1,0 +1,2 @@
+hash,scheme,operation,total_log,width_log,total_elements,elements_per_leaf,leaves,matrix_bytes,operation_input_bytes,digest_bytes,path_bytes,primitive,native_calls,abstract_leaf_calls,samples,iterations_per_sample,median_ns,p10_ns,p90_ns
+sha256,standard,commit,20,0,1048576,1,1048576,4194304,4194304,67108832,640,SHA-256 compression,2097151,0,15,2,14169375.000,13976946.000,14705458.400

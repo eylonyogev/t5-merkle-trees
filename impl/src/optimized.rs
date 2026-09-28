@@ -226,7 +226,9 @@ impl<H: ResearchHash> OptimizedMerkleTree<H> {
         let count = self.leaf_count();
         // Enough bytes per job to amortize Rayon, while retaining independent
         // messages in each job for SIMD. Large records still have many jobs.
-        let chunk = (65_536 / self.leaf_bytes()).clamp(2, 256);
+        let chunk = (65_536 / self.leaf_bytes())
+            .clamp(2, 256)
+            .max(H::LEAF_BATCH_SIZE.min(256));
         let leaves = &mut self.digests[..count];
         if count >= 2 * chunk && input.len() >= 65_536 {
             leaves

@@ -1,0 +1,165 @@
+Gnuplot not found, using plotters backend
+Benchmarking experiment_leaf/sha256/standard/u32_64
+Benchmarking experiment_leaf/sha256/standard/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/standard/u32_64: Collecting 10 samples in estimated 1.0000 s (9.0M iterations)
+Benchmarking experiment_leaf/sha256/standard/u32_64: Analyzing
+experiment_leaf/sha256/standard/u32_64
+                        time:   [102.93 ns 104.23 ns 105.63 ns]
+                        thrpt:  [2.2572 GiB/s 2.2874 GiB/s 2.3164 GiB/s]
+Benchmarking experiment_leaf/sha256/t5/u32_64
+Benchmarking experiment_leaf/sha256/t5/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t5/u32_64: Collecting 10 samples in estimated 1.0000 s (7.9M iterations)
+Benchmarking experiment_leaf/sha256/t5/u32_64: Analyzing
+experiment_leaf/sha256/t5/u32_64
+                        time:   [124.23 ns 124.78 ns 125.17 ns]
+                        thrpt:  [1.9048 GiB/s 1.9107 GiB/s 1.9192 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low severe
+Benchmarking experiment_leaf/sha256/t8/u32_64
+Benchmarking experiment_leaf/sha256/t8/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t8/u32_64: Collecting 10 samples in estimated 1.0000 s (8.4M iterations)
+Benchmarking experiment_leaf/sha256/t8/u32_64: Analyzing
+experiment_leaf/sha256/t8/u32_64
+                        time:   [117.80 ns 118.30 ns 119.07 ns]
+                        thrpt:  [2.0023 GiB/s 2.0154 GiB/s 2.0239 GiB/s]
+Benchmarking experiment_leaf/sha256/t253/u32_64
+Benchmarking experiment_leaf/sha256/t253/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t253/u32_64: Collecting 10 samples in estimated 1.0000 s (14M iterations)
+Benchmarking experiment_leaf/sha256/t253/u32_64: Analyzing
+experiment_leaf/sha256/t253/u32_64
+                        time:   [71.929 ns 72.639 ns 73.391 ns]
+                        thrpt:  [3.2486 GiB/s 3.2823 GiB/s 3.3147 GiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) low mild
+Benchmarking experiment_leaf/sha256/standard/u32_16384
+Benchmarking experiment_leaf/sha256/standard/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/standard/u32_16384: Collecting 10 samples in estimated 1.0010 s (42k iterations)
+Benchmarking experiment_leaf/sha256/standard/u32_16384: Analyzing
+experiment_leaf/sha256/standard/u32_16384
+                        time:   [22.606 µs 22.843 µs 23.308 µs]
+                        thrpt:  [2.6186 GiB/s 2.6719 GiB/s 2.7000 GiB/s]
+Benchmarking experiment_leaf/sha256/t5/u32_16384
+Benchmarking experiment_leaf/sha256/t5/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t5/u32_16384: Collecting 10 samples in estimated 1.0002 s (32k iterations)
+Benchmarking experiment_leaf/sha256/t5/u32_16384: Analyzing
+experiment_leaf/sha256/t5/u32_16384
+                        time:   [31.021 µs 31.177 µs 31.341 µs]
+                        thrpt:  [1.9474 GiB/s 1.9577 GiB/s 1.9675 GiB/s]
+Benchmarking experiment_leaf/sha256/t8/u32_16384
+Benchmarking experiment_leaf/sha256/t8/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t8/u32_16384: Collecting 10 samples in estimated 1.0010 s (29k iterations)
+Benchmarking experiment_leaf/sha256/t8/u32_16384: Analyzing
+experiment_leaf/sha256/t8/u32_16384
+                        time:   [34.592 µs 35.497 µs 36.405 µs]
+                        thrpt:  [1.6765 GiB/s 1.7194 GiB/s 1.7644 GiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) high mild
+  1 (10.00%) high severe
+Benchmarking experiment_leaf/sha256/t253/u32_16384
+Benchmarking experiment_leaf/sha256/t253/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha256/t253/u32_16384: Collecting 10 samples in estimated 1.0001 s (68k iterations)
+Benchmarking experiment_leaf/sha256/t253/u32_16384: Analyzing
+experiment_leaf/sha256/t253/u32_16384
+                        time:   [14.451 µs 14.549 µs 14.664 µs]
+                        thrpt:  [4.1622 GiB/s 4.1953 GiB/s 4.2235 GiB/s]
+
+Benchmarking experiment_leaf/sha3_256/standard/u32_64
+Benchmarking experiment_leaf/sha3_256/standard/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/standard/u32_64: Collecting 10 samples in estimated 1.0000 s (3.3M iterations)
+Benchmarking experiment_leaf/sha3_256/standard/u32_64: Analyzing
+experiment_leaf/sha3_256/standard/u32_64
+                        time:   [277.54 ns 284.32 ns 299.07 ns]
+                        thrpt:  [816.34 MiB/s 858.69 MiB/s 879.67 MiB/s]
+Benchmarking experiment_leaf/sha3_256/t5/u32_64
+Benchmarking experiment_leaf/sha3_256/t5/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/t5/u32_64: Collecting 10 samples in estimated 1.0000 s (1.7M iterations)
+Benchmarking experiment_leaf/sha3_256/t5/u32_64: Analyzing
+experiment_leaf/sha3_256/t5/u32_64
+                        time:   [580.45 ns 582.56 ns 585.32 ns]
+                        thrpt:  [417.11 MiB/s 419.08 MiB/s 420.61 MiB/s]
+Benchmarking experiment_leaf/sha3_256/t8/u32_64
+Benchmarking experiment_leaf/sha3_256/t8/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/t8/u32_64: Collecting 10 samples in estimated 1.0000 s (3.2M iterations)
+Benchmarking experiment_leaf/sha3_256/t8/u32_64: Analyzing
+experiment_leaf/sha3_256/t8/u32_64
+                        time:   [313.26 ns 315.05 ns 316.91 ns]
+                        thrpt:  [770.38 MiB/s 774.94 MiB/s 779.35 MiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+Benchmarking experiment_leaf/sha3_256/standard/u32_16384
+Benchmarking experiment_leaf/sha3_256/standard/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/standard/u32_16384: Collecting 10 samples in estimated 1.0028 s (15k iterations)
+Benchmarking experiment_leaf/sha3_256/standard/u32_16384: Analyzing
+experiment_leaf/sha3_256/standard/u32_16384
+                        time:   [65.662 µs 65.929 µs 66.220 µs]
+                        thrpt:  [943.83 MiB/s 947.99 MiB/s 951.84 MiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high mild
+Benchmarking experiment_leaf/sha3_256/t5/u32_16384
+Benchmarking experiment_leaf/sha3_256/t5/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/t5/u32_16384: Collecting 10 samples in estimated 1.0046 s (9735 iterations)
+Benchmarking experiment_leaf/sha3_256/t5/u32_16384: Analyzing
+experiment_leaf/sha3_256/t5/u32_16384
+                        time:   [102.90 µs 103.10 µs 103.56 µs]
+                        thrpt:  [603.49 MiB/s 606.19 MiB/s 607.36 MiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+Benchmarking experiment_leaf/sha3_256/t8/u32_16384
+Benchmarking experiment_leaf/sha3_256/t8/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/sha3_256/t8/u32_16384: Collecting 10 samples in estimated 1.0002 s (16k iterations)
+Benchmarking experiment_leaf/sha3_256/t8/u32_16384: Analyzing
+experiment_leaf/sha3_256/t8/u32_16384
+                        time:   [61.326 µs 61.490 µs 61.720 µs]
+                        thrpt:  [1012.6 MiB/s 1016.4 MiB/s 1019.1 MiB/s]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+Benchmarking experiment_leaf/blake3/standard/u32_64
+Benchmarking experiment_leaf/blake3/standard/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/standard/u32_64: Collecting 10 samples in estimated 1.0000 s (4.9M iterations)
+Benchmarking experiment_leaf/blake3/standard/u32_64: Analyzing
+experiment_leaf/blake3/standard/u32_64
+                        time:   [205.15 ns 207.91 ns 210.47 ns]
+                        thrpt:  [1.1328 GiB/s 1.1468 GiB/s 1.1622 GiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking experiment_leaf/blake3/t5/u32_64
+Benchmarking experiment_leaf/blake3/t5/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t5/u32_64: Collecting 10 samples in estimated 1.0000 s (3.9M iterations)
+Benchmarking experiment_leaf/blake3/t5/u32_64: Analyzing
+experiment_leaf/blake3/t5/u32_64
+                        time:   [264.17 ns 266.09 ns 267.34 ns]
+                        thrpt:  [913.22 MiB/s 917.52 MiB/s 924.17 MiB/s]
+Benchmarking experiment_leaf/blake3/t8/u32_64
+Benchmarking experiment_leaf/blake3/t8/u32_64: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t8/u32_64: Collecting 10 samples in estimated 1.0000 s (4.8M iterations)
+Benchmarking experiment_leaf/blake3/t8/u32_64: Analyzing
+experiment_leaf/blake3/t8/u32_64
+                        time:   [208.37 ns 209.12 ns 210.42 ns]
+                        thrpt:  [1.1331 GiB/s 1.1401 GiB/s 1.1442 GiB/s]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+Benchmarking experiment_leaf/blake3/standard/u32_16384
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Collecting 10 samples in estimated 1.0011 s (36k iterations)
+Benchmarking experiment_leaf/blake3/standard/u32_16384: Analyzing
+experiment_leaf/blake3/standard/u32_16384
+                        time:   [27.561 µs 27.777 µs 28.019 µs]
+                        thrpt:  [2.1783 GiB/s 2.1973 GiB/s 2.2145 GiB/s]
+Benchmarking experiment_leaf/blake3/t5/u32_16384
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Collecting 10 samples in estimated 1.0019 s (18k iterations)
+Benchmarking experiment_leaf/blake3/t5/u32_16384: Analyzing
+experiment_leaf/blake3/t5/u32_16384
+                        time:   [55.934 µs 56.379 µs 56.664 µs]
+                        thrpt:  [1.0771 GiB/s 1.0826 GiB/s 1.0912 GiB/s]
+Benchmarking experiment_leaf/blake3/t8/u32_16384
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Warming up for 200.00 ms
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Collecting 10 samples in estimated 1.0003 s (30k iterations)
+Benchmarking experiment_leaf/blake3/t8/u32_16384: Analyzing
+experiment_leaf/blake3/t8/u32_16384
+                        time:   [32.927 µs 33.213 µs 33.503 µs]
+                        thrpt:  [1.8218 GiB/s 1.8377 GiB/s 1.8536 GiB/s]
+

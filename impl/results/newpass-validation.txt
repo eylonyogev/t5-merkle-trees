@@ -1,0 +1,37 @@
+Experimental optimization pass validation, 2026-09-28
+Host: aarch64-apple-darwin; Rust 1.96.0
+Working directory: impl/
+All commands below were rerun successfully after the final short-leaf BLAKE3
+dispatch and two-message tail correction.
+
+cargo test --locked --offline
+  PASS: 59 tests and 1 doctest.
+  29 unit, 11 independent-vector/API, 3 frozen-compatibility,
+  13 optimized-tree, and 3 pinned-Plonky3 integration tests.
+
+cargo test --locked --offline --no-default-features
+  PASS: the same 59 tests and 1 doctest with serial tree iteration.
+
+cargo clippy --locked --offline --all-targets --all-features -- -D warnings
+  PASS: no warnings.
+
+cargo fmt --check
+  PASS.
+
+RUSTFLAGS='--cfg keccak_backend="soft"' \
+  CARGO_TARGET_DIR=/private/tmp/merkle-experimental-optimization-pass/keccak-soft \
+  cargo test --locked --offline --test leaf_compatibility --test optimized
+  PASS: all 16 integration tests with the Keccak software backend forced.
+  The separate target directory avoids changing the benchmark build flags.
+
+Frozen compatibility fixtures contain 640 pre-pass leaf digests from commit
+cfd93bdf643e64674c460bace0553516e95848c4, spanning 40 widths and all supported
+hash/mode combinations. Each is checked in both single-leaf and five-row mode.
+New SIMD tests additionally use distinct per-lane inputs, arbitrary CVs,
+domain counters, flags, partial batches, and construction stage boundaries.
+
+Native architecture kernels were exercised on AArch64. Other architecture
+targets were not installed, so this does not claim cross-target compilation
+or performance measurements. Portable primitive/reference implementations
+are exercised by the differential tests; forced Keccak software execution
+also covers the one-lane scheduler.

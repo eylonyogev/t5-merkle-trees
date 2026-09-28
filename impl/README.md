@@ -6,7 +6,8 @@ whole-leaf compression modes. `LeafMode::Standard` preserves baseline roots;
 T5, T8, ABR3 and SHA-256 T253 are separate experimental constructions.
 Start with [EXPERIMENTS.md](EXPERIMENTS.md),
 [OPTIMIZED_BENCHMARKS.md](OPTIMIZED_BENCHMARKS.md), and
-[RESULTS.md](RESULTS.md) for the implementation, comparisons and measured results.
+[NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) for the implementation, benchmarks and
+latest measured results. [RESULTS.md](RESULTS.md) records the initial comparison.
 
 ## Preserved reference implementation
 
@@ -143,6 +144,11 @@ cargo fmt --check
 
 The tests cover agreement with pinned Plonky3 roots and authentication paths,
 cross-verification, independent hash fixtures, little-endian encoding, boundary
-sizes, singleton trees, and malformed/tampered openings. The local crate forbids
-unsafe Rust. Upstream-derived code is used under its MIT license; see
+sizes, singleton trees, and malformed/tampered openings. Frozen pre-optimization
+fixtures also check all experimental modes at construction and padding
+boundaries. The crate denies unsafe Rust except in two isolated, runtime-checked
+SIMD modules used by the optimized implementation. See
+[EXPERIMENTS.md](EXPERIMENTS.md) for backend details and
+[NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) for measured improvements.
+Upstream-derived code is used under its MIT license; see
 [LICENSE-MIT](LICENSE-MIT).

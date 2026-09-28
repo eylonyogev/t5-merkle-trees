@@ -1,0 +1,15 @@
+Snapshot pre new kernel optimization pass
+2026-09-28T14:16:39.928209
+cfd93bdf643e64674c460bace0553516e95848c4
+rustc 1.96.0 (ac68faa20 2026-05-25)
+2c893451c8c19d462cd0b856f75b199ceb8e59aa4aa2c84e4f04b91642dbece6  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/Cargo.toml
+43abcd41c3338cd7b2fb5a6918609a46153119642b68b4865e1010f6884d807a  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/Cargo.lock
+e2be1769ee1e9c2ac57a68a48d49663c8abf275cd74079dadfd59f3358fa38dd  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/experimental.rs
+bd2cade0e078f984f9fa422705dc4e33a9e444dd74a1b80069ef812011c0223f  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/hash.rs
+235762664d1b4ea8ab326ddca652d9d5be96289b94824337df9a605b51afc8d2  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/lib.rs
+671f8167ef7b23325e9059eb23faacfb4c303c8f163732daba54688c2cffd15c  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/optimized.rs
+07703b1e5110deee0f300a70fd6812c18aa3a584cc52eb633dbe3d89d9090c95  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/src/optimized_hash.rs
+1b9e09ce2d75197c6d6cf88171722b883e4732d9208d765bc0b0f5a033579d97  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/examples/perf_sweep.rs
+626caa137fe5f480074af18e9df0a0caa37350628abaf03ac9458228f92f4e87  /Users/giacomofenzi/Documents/implementations/t5-merkle-trees/impl/benches/optimized.rs
+a272c44e48eb59f4dae9c05250059d1188f5e30f419c9ce24930ef32ac1a7029  /private/tmp/merkle-experimental-optimization-pass/perf_sweep
+4e96a635463ce1ee9783873fcc16d0bb1532a69e766ede3ddc3730ba711e8539  /private/tmp/merkle-experimental-optimization-pass/optimized-bench
