@@ -1115,8 +1115,9 @@ $Q=q+2(d+3)$, the resulting bound is
  \leq\epsilon_8(Q)+\epsilon_C(Q),
  \label{eq:binding}
 \end{equation}
-where $\epsilon_8$ and $\epsilon_C$ bound collision advantage for the
-complete leaf function and the node hash, respectively, with the other
+where $\epsilon_8$ and $\epsilon_C$ bound the probability that a transcript
+of at most $Q$ primitive queries contains a fully evaluated collision in
+the complete leaf function or the node hash, respectively, with the other
 independent oracle interfaces available or simulated. There is no
 multiplicative loss in $N$. For an ideal $h_{\mathrm N}$, its restriction
 in~\eqref{eq:node} has the usual birthday bound
@@ -1124,9 +1125,10 @@ $\epsilon_C(Q)\leq Q(Q-1)/2^{n+1}$, capped at one.
 
 For $\Tate$, the larger-input extension in~\cite{DKMN21} gives
 birthday-scale collision security in the independent ideal-function model.
-We keep its advantage $\epsilon_8$ explicit rather than claim a new exact
-constant. For a concrete instantiation, collision resistance of the complete
-leaf function is the property required by Proposition~\ref{prop:binding}.
+Section~\ref{sec:collision-bound} gives an explicit refinement of its
+collision bound and hence a concrete choice of $\epsilon_8$.
+For a concrete instantiation, collision resistance of the complete leaf
+function is the property required by Proposition~\ref{prop:binding}.
 Collision resistance of the individual compression functions alone is not
 a generic proof for this XOR-based composition.
 
@@ -1143,6 +1145,380 @@ This avoids the additional security questions arising from specialized
 partial openings. Position binding is still only a consistency property:
 it does not establish hiding, knowledge of a full vector, or the additional
 properties that a particular succinct-argument compiler might require.
+
+\subsection{A sharper collision bound for T5 and T8}
+\label{sec:collision-bound}
+The T5 analysis in~\cite[Appendix~A]{DKMN21} gives the bound
+$(n^2+10)q^2/2^n$ by imposing a cutoff of $n$ on certain matching-pair
+sets and a cutoff of $nq$ on the number of completed evaluations.
+We refine this argument by retaining the factorial in the matching-pair
+tail bound, choosing the cutoff freely, and bounding the number of
+evaluations in expectation. The proof below treats arbitrary adaptive
+query schedules and applies to both T5 and its eight-input extension.
+
+Let $\mathcal{G}=\{0,1\}^n$, with addition written as $\oplus$.
+For $\ell\in\{2,3\}$, let $h_1,h_2,h_3:\mathcal{G}^{\ell}\to
+\mathcal{G}$ be independent uniformly random functions, and define
+\begin{equation}
+ H_{\ell}(u,v,s,w)
+ =h_3\bigl(h_1(u)\oplus s,h_2(v)\oplus s,w\bigr)\oplus s,
+ \label{eq:generalized-t5}
+\end{equation}
+where $u,v\in\mathcal{G}^{\ell}$, $s\in\mathcal{G}$, and
+$w\in\mathcal{G}^{\ell-2}$. For $\ell=2$, the tuple $w$ is empty
+and $H_2=\mathsf{T}_5$; for $\ell=3$, $H_3=\Tate$ as defined
+in~\eqref{eq:t8}. A transcript \emph{contains an evaluation} of
+$H_{\ell}$ if it contains all three primitive queries needed to compute
+that evaluation, irrespective of their order. It contains a collision if
+two such evaluations have distinct complete inputs and the same output.
+We assume throughout this subsection that both claimed collision inputs
+have been fully evaluated in the transcript.
+
+\begin{theorem}[Refined collision bound]
+\label{thm:refined-collision}
+Let $n,Q\geq1$ be integers with $Q\leq2^{n/2}$, and let
+$\ell\in\{2,3\}$. Consider any
+possibly randomized, computationally unbounded adversary making at most
+$Q$ adaptive queries in total to the independent ideal functions
+$h_1,h_2,h_3$ above. Set $\rho=Q^2/2^n$ and, for $k\geq1$, define
+\begin{equation}
+ c_k
+ =1+\frac{k^2}{2}+\frac{k\rho}{48}
+   +\frac{3\cdot2^n\rho^k}{2^{k+1}(k+1)!}.
+ \label{eq:collision-coefficient}
+\end{equation}
+Starting at $k=1$, stop at the first $k$ for which $c_{k+1}\geq c_k$.
+This determines the minimizing cutoff and its coefficient:
+\[
+ K_\star=\min\{k\in\{1,\ldots,n\}:c_{k+1}\geq c_k\},
+ \qquad \gamma_n(Q)=c_{K_\star}.
+\]
+The cutoff always exists and minimizes $c_k$ over all integers $k\geq1$.
+The collision probability satisfies
+\begin{equation}
+ \Pr[\text{the transcript contains a collision in $H_\ell$}]
+ \leq\min\left\{1,\;\gamma_n(Q)\frac{Q^2}{2^n}\right\}.
+ \label{eq:refined-collision-bound}
+\end{equation}
+\end{theorem}
+
+For $n=256$, this gives the following concrete bounds. Each row applies
+to every $Q$ up to the indicated query budget; $K_\star$ is the
+minimizing cutoff at that budget, and the coefficient is rounded upward.
+\begin{center}
+\begin{tabular}{@{}rrl@{}}
+\toprule
+Query budget & $K_\star$ at the budget & Collision probability at most\\
+\midrule
+$Q\leq2^{64}$  & $2$  & $3.07\,Q^2/2^{256}$\\
+$Q\leq2^{80}$  & $3$  & $5.51\,Q^2/2^{256}$\\
+$Q\leq2^{96}$  & $4$  & $9.01\,Q^2/2^{256}$\\
+$Q\leq2^{112}$ & $8$  & $33.01\,Q^2/2^{256}$\\
+$Q\leq2^{120}$ & $13$ & $86.10\,Q^2/2^{256}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+For comparison, the original coefficient $n^2+10$ is $65{,}546$.
+For $Q>2^{n/2}$ we use the trivial probability bound of one.
+
+\begin{proof}
+We first prove the following intermediate bound for every integer
+$K\geq1$, and then show that the cutoff in the theorem minimizes it:
+\begin{equation}
+ B_n(Q,K):=c_K\rho
+ =\left(1+\frac{K^2}{2}\right)\rho
+  +\frac{K\rho^2}{48}
+  +\frac{3\cdot2^n}{(K+1)!}
+       \left(\frac{\rho}{2}\right)^{K+1}.
+ \label{eq:cutoff-collision-bound}
+\end{equation}
+Write $S=2^n$ for the size of the output space; the symbol $N$ continues
+to denote the number of records in the Merkle tree. Repeated queries can
+be answered from a cache, so we count only fresh queries. Pad an execution
+with idle rounds if it uses fewer than $Q$ such queries. Sample the
+adversary's random tape at the start, and let $\mathcal{F}_i$ be this
+tape together with the full history after round $i$. The query in round
+$i$ is determined by
+$\mathcal{F}_{i-1}$, and each fresh oracle answer is uniform in
+$\mathcal{G}$ conditional on this history. All probability and
+expectation estimates below use this conditional distribution.
+
+\paragraph{Transcripts and complete evaluations.}
+After round $i$, let $\mathcal{A}_i$ contain the query--answer pairs
+$(u,a)$ for $h_1$, let $\mathcal{B}_i$ contain $(v,b)$ for $h_2$, and
+let $\mathcal{C}_i$ contain $((c,d,w),e)$ for $h_3$. The full input,
+including $w$, is part of the identity of an $h_3$ query. For each entry
+of $\mathcal{C}_i$, write
+\[
+ r=e\oplus c,\qquad t=e\oplus d.
+\]
+A triple consisting of one entry of each table defines a complete
+evaluation exactly when
+\begin{equation}
+ a\oplus b=c\oplus d.
+ \label{eq:t5-consistent-triple}
+\end{equation}
+Indeed, the corresponding input and output are then uniquely determined:
+\[
+ (u,v,s,w),\qquad s=a\oplus c=b\oplus d,
+ \qquad f=a\oplus r=b\oplus t.
+\]
+Conversely, every evaluation contained in the transcript determines one
+such triple. Distinct consistent triples therefore represent distinct
+complete inputs. Let $\mathcal{E}_i$ be the set of these evaluations.
+
+\paragraph{Simple collisions.}
+Let $\mathsf{Bad}_0$ be the event that two distinct queries have equal
+$a$ values in $\mathcal{A}_Q$, equal $b$ values in $\mathcal{B}_Q$,
+equal $r$ values in $\mathcal{C}_Q$, or equal $t$ values in
+$\mathcal{C}_Q$. Conditional on any history, a fresh $h_1$ or $h_2$
+answer collides with a previous answer of that oracle with probability
+at most $(i-1)/S$ in round $i$. For $h_3$, each of $e\oplus c$ and
+$e\oplus d$ is uniform conditional on the chosen input and history.
+A union bound gives probability at most $2(i-1)/S$ for either type
+of shifted collision. Independence between these two shifted values
+is not needed. Consequently,
+\begin{equation}
+ \Pr[\mathsf{Bad}_0]
+ \leq\sum_{i=1}^{Q}\frac{2(i-1)}{S}
+ =\frac{Q(Q-1)}{S}\leq\rho.
+ \label{eq:t5-simple-collisions}
+\end{equation}
+
+\paragraph{Matching-pair sets and their tails.}
+For $z,f\in\mathcal{G}$ define
+\begin{align*}
+ \mathcal{P}_{12,i}(z)
+ &=\{((u,a),(v,b))\in\mathcal{A}_i\times\mathcal{B}_i:
+          a\oplus b=z\},\\
+ \mathcal{P}_{13,i}(f)
+ &=\{((u,a),((c,d,w),e))\in\mathcal{A}_i\times\mathcal{C}_i:
+          a\oplus e\oplus c=f\},\\
+ \mathcal{P}_{23,i}(f)
+ &=\{((v,b),((c,d,w),e))\in\mathcal{B}_i\times\mathcal{C}_i:
+          b\oplus e\oplus d=f\}.
+\end{align*}
+Let $\mathsf{Bad}_K$ be the event that at least one of these sets has
+more than $K$ entries after round $Q$. We bound its probability when
+$\mathsf{Bad}_0$ does not occur.
+
+Fix one of the three families and one bucket value. In the absence of
+simple collisions, a query adds at most one pair to this bucket: the
+values in the opposite table are distinct. This also holds for the
+shifted tables used in $\mathcal{P}_{13,i}$ and
+$\mathcal{P}_{23,i}$. Let $I_i$ indicate that the fixed bucket gains
+at least one pair in round $i$, whether or not a simple collision occurs
+elsewhere. There are at most $i-1$ possible matching values for the
+fresh answer, so for every history
+\[
+ \Pr[I_i=1\mid\mathcal{F}_{i-1}]\leq\frac{i-1}{S}.
+\]
+For fixed indices $i_1<\cdots<i_k$, successive conditioning therefore
+gives
+\[
+ \Pr[I_{i_1}=\cdots=I_{i_k}=1]
+ \leq\prod_{j=1}^{k}\frac{i_j-1}{S}.
+\]
+If the bucket has at least $k$ entries and $\mathsf{Bad}_0$ has not
+occurred, at least $k$ distinct rounds have $I_i=1$. Taking a union
+bound over these rounds and expanding a power yields
+\begin{align*}
+ \Pr[\text{fixed bucket has at least $k$ entries}
+          \;\wedge\;\neg\mathsf{Bad}_0]
+ &\leq\sum_{1\leq i_1<\cdots<i_k\leq Q}
+             \prod_{j=1}^{k}\frac{i_j-1}{S}\\
+ &\leq\frac{1}{k!}
+          \left(\sum_{i=1}^{Q}\frac{i-1}{S}\right)^k\\
+ &\leq\frac{1}{k!}\left(\frac{\rho}{2}\right)^k.
+\end{align*}
+The factor $1/k!$ follows because every product with distinct indices
+occurs $k!$ times in the power, whose remaining terms are nonnegative.
+The argument also covers $k>Q$, when the first sum is empty. There are
+$S$ bucket values in each of three families. Setting $k=K+1$ gives
+\begin{equation}
+ \Pr[\mathsf{Bad}_K\wedge\neg\mathsf{Bad}_0]
+ \leq\frac{3S}{(K+1)!}
+            \left(\frac{\rho}{2}\right)^{K+1}.
+ \label{eq:t5-bucket-tail}
+\end{equation}
+
+\paragraph{Expected number of evaluations before a bad event.}
+Let $G_i$ be the event that neither a simple collision nor a bucket of
+size greater than $K$ has appeared in the first $i$ rounds. Define
+\[
+ V_i=\mathbf{1}_{G_i}|\mathcal{E}_i|,
+ \qquad V_0=0.
+\]
+Thus the count is set to zero once a bad event occurs. We bound
+$\mathbb{E}[V_i]$ without conditioning on the future event $G_Q$.
+
+Every evaluation is first completed by exactly one query. Let $L_i$
+count evaluations first completed by a query to $h_1$ or $h_2$ in the
+first $i$ rounds of the original execution, including executions on
+which a bad event occurs. For a fresh $h_1$ query in round $j$, each
+pair in $\mathcal{B}_{j-1}\times\mathcal{C}_{j-1}$ completes an
+evaluation precisely when its required value $b\oplus c\oplus d$
+equals the fresh answer $a$. Linearity of expectation gives conditional
+expected increment
+\[
+ \frac{|\mathcal{B}_{j-1}|\,|\mathcal{C}_{j-1}|}{S}
+ \leq\frac{(j-1)^2}{4S}.
+\]
+Here the two table sizes sum to at most $j-1$. The same bound applies
+to a fresh $h_2$ query, with $\mathcal{A}_{j-1}$ in place of
+$\mathcal{B}_{j-1}$. An $h_3$ query or an idle round does not increase
+$L_i$. In particular, these estimates hold for adaptive, random
+allocations of queries among the oracles, and
+\begin{equation}
+ \mathbb{E}[L_i]\leq\frac{1}{4S}\sum_{j=1}^{i}(j-1)^2.
+ \label{eq:t5-late-inner-evaluations}
+\end{equation}
+
+On $G_i$, each $h_3$ query with input $(c,d,w)$ completes exactly one
+evaluation per entry of $\mathcal{P}_{12,j-1}(c\oplus d)$ at its
+query time $j$, hence at most $K$ evaluations. There are at most $i$
+such queries. Thus $V_i\leq Ki+L_i$ on every execution: this is the
+preceding counting argument on $G_i$, and is immediate from $V_i=0$
+otherwise. We obtain
+\begin{equation}
+ \mathbb{E}[V_i]
+ \leq Ki+\frac{1}{4S}\sum_{j=1}^{i}(j-1)^2.
+ \label{eq:t5-expected-evaluations}
+\end{equation}
+
+\paragraph{Collisions created by a fresh query.}
+Fix a history satisfying $G_{i-1}$. First, two distinct evaluations
+completed by the \emph{same} query cannot collide. For an $h_1$ query,
+their common new value $a$ and equal outputs would force $r=r'$.
+The absence of shifted collisions identifies the two $h_3$ queries.
+Consistency then gives $b=b'$, and the absence of collisions in $h_2$
+identifies the two $h_2$ queries as well. The triples would be identical.
+The $h_2$ case is symmetric, using $t=t'$. For an $h_3$ query, the
+common $r$ and equal outputs force $a=a'$, and consistency then forces
+$b=b'$. Again, the absence of simple collisions in the previous tables
+identifies both triples. These arguments use only the good prefix
+$G_{i-1}$.
+
+It remains to bound collisions between a new evaluation and an old
+evaluation in $\mathcal{E}_{i-1}$. Fix one old evaluation, with output
+$f$. There are three cases.
+\begin{enumerate}
+ \item A fresh query to $h_1$ returns $a$. A new evaluation with output
+ $f$ must use a pair in $\mathcal{P}_{23,i-1}(f)$ and must satisfy
+ $a=b\oplus c\oplus d$. There are at most $K$ such pairs, each
+ specifying one value of the uniform answer $a$. The probability is
+ at most $K/S$.
+ \item A fresh query to $h_2$ returns $b$. The pair must lie in
+ $\mathcal{P}_{13,i-1}(f)$, and its required answer is
+ $b=a\oplus c\oplus d$. The same bound $K/S$ follows.
+ \item A fresh query to $h_3$ has its input $(c,d,w)$ fixed before
+ the answer $e$ is sampled. A new evaluation uses a pair in
+ $\mathcal{P}_{12,i-1}(c\oplus d)$ and has output $f$ precisely
+ when $e=f\oplus a\oplus c$. Again, there are at most $K$
+ candidate answers, so the probability is at most $K/S$.
+\end{enumerate}
+Only one of these cases applies in each round; their bounds are not
+added. A union bound over the old evaluations shows that, conditional
+on the fixed good history, the probability of a newly created collision
+is at most $K|\mathcal{E}_{i-1}|/S$. Equivalently, if $X_i$ is the
+event that a collision involving a newly completed evaluation appears
+in round $i$, then
+\begin{equation}
+ \Pr[X_i\wedge G_{i-1}]
+ \leq\frac{K}{S}\mathbb{E}[V_{i-1}].
+ \label{eq:t5-per-query-collision}
+\end{equation}
+
+\paragraph{Summing the bounds.}
+If a collision is present at the end and $G_Q$ holds, it was first
+created in some round whose prefix was good. Therefore,
+\begin{align*}
+ \Pr[\text{collision}\wedge G_Q]
+ &\leq\sum_{i=1}^{Q}\frac{K}{S}\mathbb{E}[V_{i-1}]\\
+ &\leq\frac{K^2}{S}\sum_{i=1}^{Q}(i-1)
+   +\frac{K}{4S^2}\sum_{i=1}^{Q}\sum_{j=1}^{i-1}(j-1)^2\\
+ &=\frac{K^2Q(Q-1)}{2S}
+   +\frac{KQ(Q-1)^2(Q-2)}{48S^2}\\
+ &\leq\frac{K^2\rho}{2}+\frac{K\rho^2}{48}.
+\end{align*}
+For $Q=1$ both sums and both terms in the penultimate line are zero.
+For $Q\geq2$, the double-sum identity used here is
+\[
+ \sum_{i=1}^{Q}\sum_{j=1}^{i-1}(j-1)^2
+ =\sum_{r=0}^{Q-2}(Q-1-r)r^2
+ =\frac{Q(Q-1)^2(Q-2)}{12}.
+\]
+Finally, decompose the collision event according to
+$\mathsf{Bad}_0$, $\mathsf{Bad}_K\wedge\neg\mathsf{Bad}_0$, and
+$G_Q$. Adding~\eqref{eq:t5-simple-collisions},
+\eqref{eq:t5-bucket-tail}, and the preceding collision estimate gives
+$B_n(Q,K)=c_K\rho$ for every $K\geq1$.
+
+\paragraph{The minimizing cutoff.}
+To justify the explicit stopping rule, write
+\[
+ a_k=\frac{3\cdot2^n\rho^k}{2^{k+1}(k+1)!},
+ \qquad c_k=1+\frac{k^2}{2}+\frac{k\rho}{48}+a_k.
+\]
+The tail coefficients obey the recurrence
+$a_{k+1}=\rho a_k/(2(k+2))$. Consequently,
+\begin{align*}
+ c_{k+1}-c_k
+ &=k+\frac12+\frac{\rho}{48}
+       -a_k\left(1-\frac{\rho}{2(k+2)}\right),\\
+ c_{k+2}-2c_{k+1}+c_k
+ &=1+a_k\left(1-\frac{\rho}{k+2}
+                 +\frac{\rho^2}{4(k+2)(k+3)}\right)>0.
+\end{align*}
+The last inequality uses $0<\rho\leq1$ and $k\geq1$. Thus the
+successive differences are strictly increasing: once the coefficients
+stop decreasing, they never decrease again. Moreover,
+$a_n\leq3/(2(n+1)!)$, so
+\[
+ c_{n+1}-c_n
+ \geq n+\frac12-\frac{3}{2(n+1)!}>0.
+\]
+Hence the stopping rule terminates by $k=n$ and returns the smallest
+integer attaining the global minimum. Substituting $K=K_\star$ into
+the intermediate bound and capping the result at one proves the theorem.
+Finally, each $c_k$ is nondecreasing in $\rho$. A coefficient evaluated
+at a query-budget endpoint therefore also bounds all smaller query
+counts, which justifies the ranges in the table.
+\end{proof}
+
+\paragraph{Uniform asymptotic bound.}
+The optimized coefficient also admits a simple asymptotic estimate.
+For any $K$ satisfying
+\[
+ 2^{K+1}(K+1)!\geq3\cdot2^n,
+\]
+the last term of~\eqref{eq:cutoff-collision-bound} is at most
+$\rho^{K+1}\leq\rho$. Since $\gamma_n(Q)\leq c_K$, we obtain
+\begin{equation}
+ \gamma_n(Q)\leq2+\frac{K^2}{2}+\frac{K}{48}.
+ \label{eq:t5-uniform-cutoff}
+\end{equation}
+Stirling's formula permits $K=O(n/\log n)$ as $n\to\infty$, giving
+an $O((n/\log n)^2Q^2/2^n)$ collision bound in this range.
+This improvement is an upper-bound refinement; we do not claim that the
+optimized bound is tight or that an absolute constant independent of $n$
+suffices.
+
+\paragraph{Consequence for the Merkle commitment.}
+With $Q=q+2(d+3)\leq2^{n/2}$ as in~\eqref{eq:binding}, the theorem
+and the node-hash birthday bound give
+\begin{equation}
+ \mtadv_{\mathrm{bind}}(q)
+ \leq\min\left\{1,\;
+ \left(\gamma_n(Q)+\frac12\right)\frac{Q^2}{2^n}\right\}.
+ \label{eq:refined-binding}
+\end{equation}
+All evaluations of the two verification paths are already charged to
+$Q$. Other independent oracle interfaces can be simulated with
+independent randomness in the
+leaf-collision analysis. The proof and the bound therefore remain valid
+when the adversary also uses the domain-separated node and baseline
+interfaces of our construction.
 
 \section{Comparison with a standard Merkle tree}
 \label{sec:cost}
@@ -1428,7 +1804,7 @@ Eli Ben-Sasson, Alessandro Chiesa, and Nicholas Spooner.
 \bibitem[DKMN21]{DKMN21}
 Yevgeniy Dodis, Dmitry Khovratovich, Nicky Mouha, and Mridul Nandi.
 \newblock \emph{T5: Hashing Five Inputs with Three Compression Calls}.
-\newblock Cryptology ePrint Archive, Paper 2021/373, 2021, Section~6.
+\newblock Cryptology ePrint Archive, Paper 2021/373, 2021.
 \newblock \url{https://eprint.iacr.org/2021/373}.
 \end{thebibliography}
 \end{document}
