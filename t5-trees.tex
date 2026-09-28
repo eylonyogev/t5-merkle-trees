@@ -930,7 +930,7 @@
 \newcommand{\QueryFunc}{\mathcal{F}}
 \newcommand{\ConstraintSystem}{\mathcal{C}}
 
-% Notation for this paper; the template's mathematical commands are retained.
+% Notation for this note; the template's mathematical commands are retained.
 \newcommand{\Tate}{\mathsf{T}_{8}}
 \newcommand{\MTLeaf}{L_{8}}
 \newcommand{\MTNode}{C}
@@ -944,719 +944,491 @@
 \hypersetup{pdftitle={Faster Merkle Commitments with T8 Leaves},pdfauthor={Giacomo Fenzi and Eylon Yogev}}
 
 \begin{document}
-\begin{titlepage}
-\title{Faster Merkle Commitments with \texorpdfstring{$\Tate$}{T8} Leaves\\
-\large Saving Compression Calls without Enlarging Record Openings}
+\title{Faster Merkle Commitments with \texorpdfstring{$\Tate$}{T8} Leaves}
 \author{Giacomo Fenzi \and Eylon Yogev}
+\date{}
 \maketitle
 
 \begin{abstract}
-Merkle trees often commit to records that are longer than a hash digest: rows of
-an evaluation table, groups of field elements, or blocks of an authenticated
-file. In this setting, verification first hashes the opened record and then
-checks its authentication path. We study a simple change confined to the first
-step: hash each eight-block record with the $\Tate$ construction described by
-Dodis, Khovratovich, Mouha, and Nandi, and retain an ordinary binary Merkle tree
-above the resulting digests.
-
-For $N=2^d$ records of eight $n$-bit blocks each, $\Tate$ uses three calls to a
-$3n$-to-$n$ compression primitive. A conventional fixed-length
-Merkle--Damg\aa rd leaf hash uses four calls to a primitive of the same width.
-Consequently, the proposed commitment uses $4N-1$ rather than $5N-1$ compression
-calls, and verification uses $d+3$ rather than $d+4$. The authentication proof
-contains exactly $d$ digests in either construction; the opened record is also
-identical in size. Thus the reduction in commitment work approaches $20\%$,
-while verification saves one compression call per distinct opened record.
-
-We give a complete position-binding reduction to collision resistance of the
-leaf hash and the ordinary node hash. The verifier evaluates $\Tate$ on the
-entire record, so the reduction applies even to adversarially chosen roots and
-does not require a specialized partial-opening property of $\Tate$. We extend
-the accounting to multiproofs and other tree arities, distinguish compression
-counts from implementation time, and describe applications to authenticated
-data and to the computation of Merkle-based SNARKs. The contribution is a
-composition and an exact cost analysis, using an existing compression
-construction; the numerical examples are analytical, not timing measurements.
+We describe a simple optimization for Merkle trees whose leaves are records
+of eight hash-sized blocks. Hash each record with $\Tate$, the eight-input
+extension of T5, and compute the upper tree in the ordinary way. Compared
+with a four-call fixed-length leaf hash, commitment to $N$ records uses
+$4N-1$ rather than $5N-1$ compression calls, and verification uses
+$\log_2N+3$ rather than $\log_2N+4$. The opened record and its authentication
+path have exactly the same sizes. We give the construction, a binding
+reduction, and precise cost comparisons, including batched openings and
+applications to Merkle-based SNARKs.
 \end{abstract}
 
-\keywords{Merkle trees; vector commitments; compression functions; local openings; SNARKs.}
-\end{titlepage}
+\section{The idea}
+A Merkle tree over records performs two kinds of hashing: it first compresses
+each record to one digest, then combines digests up to the root. An opening
+repeats the first computation on the disclosed record and checks the usual
+path of sibling digests. Consequently, a more efficient leaf hash can reduce
+both commitment and verification work while leaving the upper tree and the
+opening format unchanged.
 
-\section{Introduction}
-\label{sec:introduction}
-A Merkle commitment separates two tasks. A leaf hash compresses an application
-record to a digest, and a tree of node hashes authenticates that digest at a
-particular position. These tasks need not use the same hashing mode. In
-particular, an application may have a fixed record format and always reveal
-the entire record when opening a position. Such applications can benefit from
-a faster record hash without changing how authentication paths are represented
-or combined.
+We use the eight-input extension of T5 described by Dodis, Khovratovich,
+Mouha, and Nandi in Section~6 of~\cite{DKMN21}. This function, denoted
+$\Tate$, hashes eight $n$-bit blocks to one $n$-bit digest using three
+$3n$-to-$n$ compression calls. A conventional fixed-length
+Merkle--Damg\aa rd leaf hash using the same primitive width needs four calls.
+Replacing the latter by $\Tate$ therefore saves one call at each leaf.
 
-We investigate this choice for records consisting of eight $n$-bit blocks.
-The construction keeps the tree binary and replaces only its leaf hash by
-$\Tate$. The primitive comes from the larger-input extension in
-Section~6 of Dodis, Khovratovich, Mouha, and Nandi~\cite{DKMN21}.
-Our contribution is to place this existing primitive at the record boundary
-and to make the resulting communication, computation, and security guarantees
-explicit.
+The opening unit is central: a position contains an entire eight-block
+record, and the verifier receives all eight blocks. Both schemes commit to
+the same records. We do not compare this interface with opening one word
+in a tree containing eight times as many leaves. Since the verifier knows
+every input to $\Tate$, security uses its ordinary collision resistance;
+no specialized partial-opening property is needed.
 
-\paragraph{The record boundary is essential.}
-Throughout the paper, one position contains an entire eight-block record.
-A local opening reveals that record and authenticates it. Both the proposed
-scheme and the baseline use precisely the same records and the same tree
-shape. We are not comparing a record opening with an opening of one $n$-bit
-word in a tree having eight times as many leaves. Keeping the opening unit
-fixed is what makes the statement ``the same opening size'' exact.
+This note concerns the placement and use of an existing compression
+construction. It does not propose a new primitive. Unlike trees that replace
+the internal aggregation rule as well, the change here is confined to the
+leaves. It applies when complete records are already the unit of access,
+including suitable oracle-table commitments used in succinct arguments.
+All performance figures below count compression calls; they are not timing
+measurements.
 
-\paragraph{The main result.}
-Write $d=\log_2 N$. Count one evaluation of a $3n$-to-$n$ compression function
-as one call, and implement an ordinary binary node using one such call with a
-fixed third input. Under this accounting, our results are as follows.
-\begin{theorem}[Informal statement]
-\label{thm:informal}
-There is a Merkle commitment to $N=2^d$ eight-block records with an $n$-bit
-root and a $dn$-bit authentication proof per record. Relative to a binary
-Merkle tree with a four-call fixed-length Merkle--Damg\aa rd leaf hash, it
-reduces construction from $5N-1$ to $4N-1$ compression calls and single-record
-verification from $d+4$ to $d+3$ calls. It is position binding whenever its
-$\Tate$ leaf hash and its binary node hash are collision resistant.
-\end{theorem}
-
-The commitment saves exactly $N$ calls, one for each record. The total
-compression-count reduction is $N/(5N-1)$, approaching $20\%$. The verifier's
-relative reduction is $1/(d+4)$: an additive saving at the leaf, not a
-constant-factor reduction in path length. These distinctions matter when
-estimating improvements to an entire proof system.
-
-\paragraph{Why the security argument stays simple.}
-A verifier receives every input to the leaf hash. If two different records
-produce the same leaf digest, they form an ordinary collision in $\Tate$.
-If their leaf digests differ but their authentication paths reach the same
-root at the same position, a node-hash collision occurs at a level where the
-paths first merge. This dichotomy gives position binding without assuming
-that the root was honestly generated.
-
-\paragraph{Relation to prior work and scope.}
-The original T5 paper also studies trees that use its compression construction
-throughout the tree, with different tradeoffs for partial openings
-\cite[Section~7]{DKMN21}. Here the upper tree remains ordinary, and the entire
-input to the specialized hash is disclosed at each opened leaf. We do not
-claim a new compression primitive or a new collision bound for $\Tate$.
-The efficiency statements below are proved for a specified baseline and cost
-model. Establishing the priority of this placement as an independent research
-contribution requires a broader literature review; establishing a practical
-speedup requires an implementation.
-
-Merkle commitments are also a component of compilers from interactive oracle
-proofs to succinct arguments~\cite{BCS16}. Protocols based on evaluation tables,
-such as FRI~\cite{BBHR18} and WHIR~\cite{ACFY24}, motivate examining leaf formats
-carefully. Our application to these settings is conditional on their already
-opening suitable records; it does not assume that changing a protocol's query
-granularity is free.
-
-\section{Model and the baseline}
-\label{sec:model}
-Fix a digest length $n$ and a public record count $N=2^d$, where $d\geq 0$.
-The committed vector is
+\section{Construction and openings}
+\label{sec:construction}
+\subsection{Records and hash interfaces}
+Fix a digest length $n$ and a public record count $N=2^d$. The committed
+vector is
 \[
  X=(X_0,\ldots,X_{N-1}),\qquad
- X_i=(x_{i,1},\ldots,x_{i,8})\in(\mtbits)^8.
+ X_i=(x_{i,1},\ldots,x_{i,8})\in(\{0,1\}^n)^8.
 \]
-An ordered encoding of these eight blocks is part of the protocol. All
-comparisons use the same $n$, the same $N$, and the same encoding. Lengths,
-record format, and hash-suite identifier are fixed by the public context. If
-an application allows these to vary, it must authenticate that context; any
-additional context-binding cost is common to the two schemes and is outside
-the counts below.
+Record length, block order, $N$, and the hash-suite identifier belong to the
+fixed public context. If an application supports several formats, it must
+bind the context as well. Any extra context-binding cost should be included
+identically in both schemes.
 
-\subsection{Compression interfaces and separation}
-Let
-\[
- h_1,h_2,h_3,h_{\mathrm B},h_{\mathrm N}:
- (\mtbits)^3\longrightarrow\mtbits
-\]
-be separately named compression functions. In the idealized analysis they are
-independent random functions. In an implementation, their roles must be
-separated by a suitable primitive interface or a specified domain-separation
-mechanism. The three roles inside $\Tate$ are distinct from each other and
-from the ordinary tree-node role. Independence in the ideal model is not a
-consequence of simply reusing an untagged function.
+Let $h_1,h_2,h_3,h_{\mathrm N},h_{\mathrm B}$ be domain-separated
+$3n$-to-$n$ compression functions. In the idealized security analysis they
+are independent random functions. In an implementation their roles must be
+separated using a specified primitive interface. The names do not justify
+using one untagged function for all roles.
 
-Define the binary node hash by
+For a record $Z=(z_1,\ldots,z_8)$, set
 \begin{equation}
- \MTNode(a,b)=h_{\mathrm N}(a,b,0^n).
+\begin{aligned}
+ a&=h_1(z_1,z_2,z_3),\qquad b=h_2(z_4,z_5,z_6),\\
+ L_8(Z)=\Tate(Z)&=h_3(a\oplus z_7,b\oplus z_7,z_8)\oplus z_7.
+\end{aligned}
+\label{eq:t8}
+\end{equation}
+This is the larger-input extension from~\cite[Section~6]{DKMN21}, with an
+additional input block in each of the three compression calls. There are
+three calls and three $n$-bit XORs. The first two calls are independent, so
+the compression depth is two when parallel evaluation is available.
+
+For the upper tree, use the ordered binary node hash
+\begin{equation}
+ C(a,b)=h_{\mathrm N}(a,b,0^n).
  \label{eq:node}
 \end{equation}
-This is the standard ordered binary aggregation step: one left digest and
-one right digest yield one parent. The fixed third argument permits a fair
-count using the same primitive input width as the leaf hashes. A native
-$2n$-to-$n$ node primitive can instead be used in both schemes; the upper-tree
-counts and the number of saved leaf calls are unchanged, but the costs of the
-two primitive widths should then be weighted separately.
+The fixed third input makes the call-count comparison use the same primitive
+width throughout. An ordinary $2n$-to-$n$ node primitive may instead be used
+in both schemes. The number of saved leaf calls stays the same, but the
+relative costs of the different primitive widths must then be accounted for.
 
-The call model charges one unit for each evaluation of any $h$ above. It
-records XORs separately and does not silently count a three-input primitive
-as a two-input one. Domain-separation tags are part of the idealized interface.
-If a concrete implementation needs extra calls to encode them, those calls
-must be added to its implementation-level comparison.
-
-\subsection{Conventional fixed-length leaf hashing}
-The baseline hashes a record $X_i$ using a public fixed initialization value
-$z_0=\mathsf{IV}\in\mtbits$ and the recurrence
-\begin{equation}
- z_j=h_{\mathrm B}(z_{j-1},x_{i,2j-1},x_{i,2j}),
- \quad j=1,2,3,4;\qquad \MDLeaf(X_i)=z_4.
- \label{eq:md}
-\end{equation}
-Thus one leaf costs four calls. Fixed input length avoids an extra length or
-padding block; variable-length hashing is not being charged to the baseline.
-The baseline then builds the ordinary binary Merkle tree using $\MTNode$.
-It has $N$ leaf hashes and $N-1$ internal nodes.
-
-For perspective, a conventional aggregation tree built exclusively from
-three-input compressions also needs at least four calls to absorb eight
-independent input blocks: each call reduces the number of live words by at
-most two, so $k$ calls require $8-2k\leq1$. This counting observation applies
-to tree aggregation without additional algebraic mixing; it is not a lower
-bound on all possible compression constructions. In particular, it does not
-rule out $\Tate$.
-
-\subsection{Opening size and binding}
-The index $i$ and the purported record $X_i$ are inputs to verification.
-An authentication proof contains the sibling digests on its path to the root.
-We distinguish its $dn$ bits from the record's $8n$ bits. When both are
-transmitted, their combined size is $(d+8)n$ bits, excluding the index and
-common framing. If an index is also sent explicitly, its fixed-width encoding
-costs $d$ bits in both schemes. Left/right choices are determined by that index.
-
-\begin{definition}[Position binding]
-\label{def:binding}
-An adversary breaks position binding if it outputs a root $R$, a valid index
-$i$, two different records $X\ne X'$, and two proofs $\pi,\pi'$ such that
-\[
- \MTVerify(R,i,X,\pi)=\MTVerify(R,i,X',\pi')=1.
-\]
-The root can be chosen maliciously and need not have a known full opening.
-\end{definition}
-This is a consistency property, not a hiding or knowledge-extraction
-property. It also implies the corresponding consistency guarantee when a
-root is honestly constructed and an adversary attempts to open a position to
-a record different from the one committed there.
-
-\section{The construction}
-\label{sec:construction}
-\subsection{The eight-block leaf hash}
-For $X=(x_1,\ldots,x_8)$, instantiate the larger-input extension from
-\cite[Section~6]{DKMN21} as
-\begin{align}
- a&=h_1(x_1,x_2,x_3), & b&=h_2(x_4,x_5,x_6),\\
- \MTLeaf(X)=\Tate(X)
-   &=h_3(a\oplus x_7,b\oplus x_7,x_8)\oplus x_7.
- \label{eq:t8}
-\end{align}
-There are three compression calls and three $n$-bit XORs. The first two
-calls are independent, so the leaf has compression depth two when they run
-in parallel. Every block is supplied by the opened record; the proof carries
-no auxiliary value for this calculation.
-
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[x=1cm,y=1cm,>=stealth,
- box/.style={draw,rounded corners,align=center,minimum width=3.2cm,minimum height=.8cm}]
- \node[box] (rec) at (0,0) {$X_i=(x_{i,1},\ldots,x_{i,8})$};
- \node[box] (leaf) at (0,1.55) {$v_{0,i}=\Tate(X_i)$\\three compression calls};
- \node[box] (path) at (0,3.25) {ordinary binary path\\$d$ node-hash calls};
- \node[box] (root) at (0,4.85) {$n$-bit root $R$};
- \node[align=center] (siblings) at (4.3,3.25) {$s_0,\ldots,s_{d-1}$\\$d$ sibling digests};
- \draw[->] (rec) -- (leaf);
- \draw[->] (leaf) -- (path);
- \draw[->] (path) -- (root);
- \draw[->] (siblings) -- (path);
-\end{tikzpicture}
-\caption{Verification of one record. The specialized computation is confined
-to the leaf. The proof supplies exactly the usual binary authentication path.}
-\label{fig:scheme}
-\end{figure}
-
-\subsection{Commitment, opening, and verification}
+\subsection{Algorithms}
 \paragraph{Commit.}
-Compute $v_{0,i}=\MTLeaf(X_i)$ for $0\leq i<N$. For
+Compute the leaf digests $v_{0,i}=L_8(X_i)$ for $0\leq i<N$. For
 $\ell=0,\ldots,d-1$, compute
 \begin{equation}
- v_{\ell+1,j}=\MTNode(v_{\ell,2j},v_{\ell,2j+1}),
+ v_{\ell+1,j}=C(v_{\ell,2j},v_{\ell,2j+1}),
  \qquad 0\leq j<N/2^{\ell+1}.
- \label{eq:tree}
+ \label{eq:commit}
 \end{equation}
-Return $R=v_{d,0}$ and retain the records and tree digests as prover state.
-For $N=1$ the root is simply the sole leaf digest.
+The commitment is $R=v_{d,0}$. Store the records and tree digests for later
+openings. When $N=1$, there are no internal nodes and the root is simply
+the sole leaf digest.
 
 \paragraph{Open.}
-For position $i$, return its record $X_i$ and the authentication proof
-\begin{equation}
- \pi_i=(s_0,\ldots,s_{d-1}),\qquad
- s_\ell=v_{\ell,\,\lfloor i/2^\ell\rfloor\mathbin{\oplus}1}.
- \label{eq:open}
-\end{equation}
-In this expression, $\oplus1$ toggles the least significant bit of the integer
-node index, selecting its sibling. With stored tree digests, generating a
-proof requires reading $d$ digests and performing no new compression calls.
+To open position $i$, return $X_i$ and the $d$ sibling digests
+$\pi=(s_0,\ldots,s_{d-1})$ on its path. Specifically, at level $\ell$ the
+current node has index $\lfloor i/2^\ell\rfloor$, and $s_\ell$ is the
+other child of its parent. With a stored tree, generating the proof reads
+these digests and needs no new compression calls.
 
 \paragraph{Verify.}
-Reject unless $0\leq i<N$, the record has exactly eight $n$-bit blocks, and
-the proof has exactly $d$ $n$-bit digests. Set $y_0=\MTLeaf(X)$.
-For $\ell=0,\ldots,d-1$, let
-$b_\ell=\lfloor i/2^\ell\rfloor\bmod2$ and compute
+Reject unless $0\leq i<N$, the record has eight $n$-bit blocks, and the
+proof contains exactly $d$ $n$-bit digests. Set $y_0=L_8(X_i)$. For each
+$\ell=0,\ldots,d-1$, let $b_\ell=\lfloor i/2^\ell\rfloor\bmod2$ and set
 \begin{equation}
  y_{\ell+1}=
  \begin{cases}
-   \MTNode(y_\ell,s_\ell),&b_\ell=0,\\
-   \MTNode(s_\ell,y_\ell),&b_\ell=1.
+ C(y_\ell,s_\ell),&b_\ell=0,\\
+ C(s_\ell,y_\ell),&b_\ell=1.
  \end{cases}
  \label{eq:verify}
 \end{equation}
-Accept exactly when $y_d=R$. The baseline uses the identical procedure with
-$\MDLeaf$ in place of $\MTLeaf$.
+Accept exactly when $y_d=R$. Correctness follows by induction on the level:
+the verifier starts with the honest leaf digest and reconstructs the honest
+parent at each step.
 
-\begin{proposition}[Correctness]
-Every honestly generated opening is accepted.
-\end{proposition}
-\begin{proof}
-At level zero, the verifier computes the same leaf digest as the committer.
-Inductively, its current value is $v_{\ell,\lfloor i/2^\ell\rfloor}$, and
-\eqref{eq:open} supplies its sibling in the order specified by the next index
-bit. Equation~\eqref{eq:verify} therefore produces the correct parent.
-At level $d$ this value is $v_{d,0}=R$.
-\end{proof}
+\paragraph{Communication.}
+The authentication proof contains $dn$ bits, and the record contains $8n$
+bits. Thus record plus proof costs $(d+8)n$ bits, excluding index and framing.
+An explicit fixed-width index adds $d$ bits in either scheme. No extra value
+from the computation of $\Tate$ is transmitted. The proof format is the
+ordinary binary path; only the rule for hashing the disclosed record changes.
 
 \section{Security}
 \label{sec:security}
-We first give a reduction that treats the leaf hash as an arbitrary
-collision-resistant function. This isolates the tree argument from the
-cryptanalysis of $\Tate$.
+We use position binding: an adversary should not be able to produce a root
+$R$, an index $i$, two distinct records $Z\ne Z'$, and proofs $\pi,\pi'$
+that are both accepted at position $i$ under $R$. The root is chosen by the
+adversary and need not have a known full opening. This is the relevant
+consistency guarantee when an untrusted prover creates the commitment.
 
-\begin{theorem}[Binding from complete leaf hashing]
-\label{thm:binding}
-Let $L:(\mtbits)^8\to\mtbits$ and
-$C:(\mtbits)^2\to\mtbits$ be arbitrary deterministic functions. Any successful
-position-binding attack on the construction with leaf hash $L$ and node hash
-$C$ yields either a collision in $L$ or a collision in $C$. Extracting the
-collision requires evaluating the two purported openings and scanning their
-paths. There is no loss proportional to the number of leaves.
-\end{theorem}
+\begin{proposition}[Binding]
+\label{prop:binding}
+For any deterministic leaf function $L:(\{0,1\}^n)^8\to\{0,1\}^n$ and
+ordered node function $C$, two accepted openings to different records at the
+same position yield either a collision in $L$ or a collision in $C$.
+\end{proposition}
 \begin{proof}
-Let $(R,i,X,X',\pi,\pi')$ be a successful attack, with $X\ne X'$.
-Evaluate the two verification computations and denote their intermediate
-values by $y_0,\ldots,y_d$ and $y'_0,\ldots,y'_d$.
-If $y_0=y'_0$, then $L(X)=L(X')$ on distinct inputs, which is a collision in
-$L$.
+Evaluate both verification computations, obtaining
+$y_0,\ldots,y_d$ and $y'_0,\ldots,y'_d$. If $y_0=y'_0$, then
+$L(Z)=L(Z')$ with $Z\ne Z'$, which is a leaf collision.
 
-Otherwise $y_0\ne y'_0$ but $y_d=y'_d=R$. Thus there is a first level
-$\ell$ with $y_\ell\ne y'_\ell$ and
-$y_{\ell+1}=y'_{\ell+1}$. Because both openings concern the same index,
-$y_\ell$ and $y'_\ell$ occupy the same input coordinate of their respective
-calls to $C$. Those ordered input pairs are different, while their outputs
-are equal. They are a collision in $C$.
-For $d=0$, acceptance directly implies the first case. The argument examines
-the paths provided by the attack and does not guess a leaf or a tree level.
+Otherwise $y_0\ne y'_0$, while acceptance implies $y_d=y'_d=R$.
+There is therefore a first level at which the paths merge: for some $\ell$,
+$y_\ell\ne y'_\ell$ but $y_{\ell+1}=y'_{\ell+1}$. Because the two
+openings use the same index, their current digests occupy the same input
+coordinate of $C$. The two ordered input pairs are different and have equal
+outputs, giving a collision in $C$. If $d=0$, acceptance directly gives the
+leaf-collision case.
 \end{proof}
 
-\paragraph{Quantitative interpretation.}
-Suppose an adversary makes at most $q$ queries to the underlying compression
-oracles before outputting its attack. Evaluating both openings adds at most
-$2(d+3)$ queries for our leaf hash. Set
-\[
- Q=q+2(d+3).
-\]
-Let $\epsilon_8(Q)$ and $\epsilon_C(Q)$ bound collision-finding advantage for
-$\Tate$ and $C$, respectively, with the remaining independent primitive
-oracles available or simulated. Splitting successful attacks into the two
-cases of the proof gives
+The reduction evaluates only the two supplied paths. It neither constructs
+the entire tree nor guesses the level at which a collision occurs. If an
+adversary makes $q$ primitive queries before outputting its attack, evaluating
+the two openings in our construction adds at most $2(d+3)$ queries. With
+$Q=q+2(d+3)$, the resulting bound is
 \begin{equation}
  \mtadv_{\mathrm{bind}}(q)
- \leq \epsilon_8(Q)+\epsilon_C(Q).
- \label{eq:security}
+ \leq\epsilon_8(Q)+\epsilon_C(Q),
+ \label{eq:binding}
 \end{equation}
-Here the budgets include the reduction's evaluation of the output records
-and paths. There is no need to construct an $N$-leaf tree to perform the
-reduction. If $h_{\mathrm N}$ is an ideal random function, its restriction in
-\eqref{eq:node} has the standard bound
+where $\epsilon_8$ and $\epsilon_C$ bound collision advantage for the
+complete leaf function and the node hash, respectively, with the other
+independent oracle interfaces available or simulated. There is no
+multiplicative loss in $N$. For an ideal $h_{\mathrm N}$, its restriction
+in~\eqref{eq:node} has the usual birthday bound
 $\epsilon_C(Q)\leq Q(Q-1)/2^{n+1}$, capped at one.
 
-The larger-input extension described in Section~6 of~\cite{DKMN21}
-inherits birthday-scale collision security in the independent ideal-function
-model. Using that extension as the leaf primitive in
-\eqref{eq:security} yields birthday-scale position binding, up to the
-polynomial factors in the primitive's bound. We keep $\epsilon_8$ explicit
-rather than assert a new exact constant for that extension. Theorem~\ref{thm:binding}
-also applies to any concrete instantiation for which collision resistance
-of the complete leaf function is assumed or established. Collision
-resistance of each individual compression function alone is not a generic
-proof of collision resistance of this XOR-based composition.
+For $\Tate$, the larger-input extension in~\cite{DKMN21} gives
+birthday-scale collision security in the independent ideal-function model.
+We keep its advantage $\epsilon_8$ explicit rather than claim a new exact
+constant. For a concrete instantiation, collision resistance of the complete
+leaf function is the property required by Proposition~\ref{prop:binding}.
+Collision resistance of the individual compression functions alone is not
+a generic proof for this XOR-based composition.
 
-\begin{corollary}[Consistency with a committed vector]
-\label{cor:full-local}
-Given an honestly computed root, an accepted opening to a different record
-at any fixed position yields a leaf-hash or node-hash collision. The same
-holds for two distinct full vectors with the same root.
-\end{corollary}
-\begin{proof}
-For the first claim, pair the adversarial opening with the honest opening at
-that position and apply Theorem~\ref{thm:binding}. For the second, choose any
-position at which the vectors differ, compute their honest openings, and
-apply the same theorem. The query or time budget in either reduction must
-include computing any honest tree that is not already supplied; the short
-budget $Q$ above applies to attacks that already output two local openings.
-\end{proof}
+The same argument covers consistency with an honestly committed vector:
+pair an alleged false opening with the honest opening at that position.
+Likewise, two different vectors with the same root yield a collision by
+choosing a differing position and comparing their honest paths. Constructing
+any missing honest tree must be charged to the reduction's budget in these
+variants.
 
-\paragraph{What is and is not being inherited.}
-The verifier evaluates all three calls of $\Tate$ on a fully specified
-record. No intermediate hash output is accepted as a substitute for an
-unopened part of that record. Consequently, the reduction needs ordinary
-collision resistance of $\Tate$, not a stronger claim about a shortened
-partial-opening interface. This observation is also why the proof works for
-malicious roots, a relevant feature when the committer is a prover in a
-succinct argument. It does not establish that the root hides a low-entropy
-record, that a prover knows an entire committed vector, or that the scheme
-is secure against quantum adversaries. Those are different properties and
-require their own analyses.
+Crucially, the verifier evaluates all of $\Tate$ on the complete record.
+It does not accept an intermediate digest in place of any undisclosed block.
+This avoids the additional security questions arising from specialized
+partial openings. Position binding is still only a consistency property:
+it does not establish hiding, knowledge of a full vector, or the additional
+properties that a particular succinct-argument compiler might require.
 
-\section{Exact efficiency comparison}
-\label{sec:efficiency}
-\begin{theorem}[Compression counts and communication]
-\label{thm:cost}
-For $N=2^d$ records, the two constructions have the costs in
-Table~\ref{tab:cost}. The update row refers to replacing an entire record
-and recomputing its leaf digest from scratch, with the upper tree cached.
-\end{theorem}
-\begin{proof}
-There are $N$ leaf hashes and $N-1$ binary internal hashes. The baseline
-therefore costs $4N+(N-1)$ calls, whereas the proposed scheme costs
-$3N+(N-1)$. Verification evaluates one leaf hash and the $d$ node hashes
-on the path. An update performs the same recomputations.
-The tree shape has not changed, so there are $d$ sibling digests in either
-proof. The committed record has eight blocks and the root one block in
-both constructions. Every stored tree has $N+(N-1)$ digests.
-\end{proof}
+\section{Comparison with a standard Merkle tree}
+\label{sec:cost}
+\subsection{Baseline and exact counts}
+Use the same records, digest length, and binary upper tree. Hash a baseline
+leaf by fixed-length Merkle--Damg\aa rd iteration:
+\begin{equation}
+\begin{aligned}
+ z_0&=\mathsf{IV},\\
+ z_j&=h_{\mathrm B}(z_{j-1},x_{2j-1},x_{2j})
+      \quad(j=1,2,3,4),\qquad L_{\mathrm{MD}}(X)=z_4.
+\end{aligned}
+\label{eq:baseline}
+\end{equation}
+The public initialization value and input length are fixed, so no extra
+padding call is charged. Each leaf uses four calls to a $3n$-to-$n$
+compression function. This is the particular standard leaf-hashing baseline
+for the quantitative comparison, rather than a claim about every hash API.
 
-\begin{table}[t]
-\centering
-\small
+A binary tree with $N$ leaves has $N-1$ internal nodes. Commitment therefore
+uses $4N+(N-1)$ baseline calls and $3N+(N-1)$ calls with $\Tate$.
+Verification evaluates one leaf hash and $d$ node hashes. These observations
+give the following exact comparison.
+
+\begin{center}
 \begin{tabular}{@{}lcc@{}}
 \toprule
-Quantity & Standard leaves & $\Tate$ leaves \\
+Quantity & Standard leaves & $\Tate$ leaves\\
 \midrule
-Compression calls per leaf & $4$ & $3$ \\
-Calls to commit & $5N-1$ & $4N-1$ \\
-Calls to verify one record & $d+4$ & $d+3$ \\
-Calls to replace one record & $d+4$ & $d+3$ \\
-Calls to open, with stored tree & $0$ & $0$ \\
-Authentication proof, bits & $dn$ & $dn$ \\
-Record plus authentication proof, bits & $(d+8)n$ & $(d+8)n$ \\
-Root, bits & $n$ & $n$ \\
-Stored tree digests & $2N-1$ & $2N-1$ \\
-Leaf compression depth & $4$ & $2$ \\
+Calls to commit & $5N-1$ & $4N-1$\\
+Calls to verify one record & $d+4$ & $d+3$\\
+Calls to replace a complete record & $d+4$ & $d+3$\\
+Authentication proof & $dn$ bits & $dn$ bits\\
+Opened record & $8n$ bits & $8n$ bits\\
+Root & $n$ bits & $n$ bits\\
+Stored tree digests & $2N-1$ & $2N-1$\\
 \bottomrule
 \end{tabular}
-\caption{Identical records, digest lengths, and binary tree shape. The depth
-row compares $\Tate$ with the sequential baseline of~\eqref{eq:md}; the $\Tate$
-depth assumes two available compression units. XOR and encoding costs are
-accounted for separately in the text.}
-\label{tab:cost}
-\end{table}
+\end{center}
 
-\subsection{Interpreting the gains}
-The leaf alone uses $25\%$ fewer compression calls. Once the ordinary upper
-tree is included, the relative reduction is
+The update row assumes that the upper tree is stored and that the new leaf
+hash is recomputed from scratch. The committer saves $N$ calls overall, and
+the verifier saves one call per opened record. The relative reductions are
 \begin{equation}
- \rho_{\mathrm{commit}}(N)=\frac{N}{5N-1},\qquad
- \rho_{\mathrm{verify}}(N)=\frac{1}{\log_2 N+4}.
- \label{eq:fractions}
+ \rho_{\mathrm{commit}}=\frac{N}{5N-1},\qquad
+ \rho_{\mathrm{verify}}=\frac{1}{d+4}.
+ \label{eq:ratios}
 \end{equation}
-For large $N$, the commitment call ratio is approximately $4/5$.
-Equivalently, if compression calls dominate and all have equal cost, the
-ideal throughput speedup is approximately $5/4=1.25$. A $20\%$ reduction
-in work and a $25\%$ increase in throughput describe the same idealized
-ratio; they are not interchangeable percentage statements.
+Thus leaf hashing uses $25\%$ fewer calls, while total commitment work
+approaches a $20\%$ reduction. The verification saving is additive and its
+percentage decreases as the tree grows. Under an equal-cost,
+compression-dominated model, the commitment ratio corresponds to a limiting
+throughput speedup of $5/4$.
 
-Table~\ref{tab:examples} gives exact counts for representative tree sizes.
-For $n=256$ and $N=2^{20}$, the record is 256 bytes and its path is 640 bytes,
-so both schemes transmit 896 bytes for record plus authentication digests.
-The verifier performs 23 rather than 24 compression calls, a reduction of
-about $4.17\%$. The committer saves exactly $1{,}048{,}576$ calls.
+\subsection{Concrete examples}
+For $n=256$, each record is 256 bytes and each sibling digest is 32 bytes.
+The following counts exclude any common context binding, index, or framing.
 
-\begin{table}[t]
-\centering
+\begin{center}
 \small
-\begin{tabular}{@{}rrrrrr@{}}
+\begin{tabular}{@{}rrrr@{}}
 \toprule
-$N$ & Standard commit & $\Tate$ commit & Standard verify & $\Tate$ verify & Path bytes\\
+$N$ & Commit: standard / $\Tate$ & Verify: standard / $\Tate$ & Path bytes\\
 \midrule
-$2^{10}$ & $5{,}119$ & $4{,}095$ & $14$ & $13$ & $320$\\
-$2^{16}$ & $327{,}679$ & $262{,}143$ & $20$ & $19$ & $512$\\
-$2^{20}$ & $5{,}242{,}879$ & $4{,}194{,}303$ & $24$ & $23$ & $640$\\
+$2^{10}$ & $5{,}119\;/\;4{,}095$ & $14\;/\;13$ & $320$\\
+$2^{16}$ & $327{,}679\;/\;262{,}143$ & $20\;/\;19$ & $512$\\
+$2^{20}$ & $5{,}242{,}879\;/\;4{,}194{,}303$ & $24\;/\;23$ & $640$\\
 \bottomrule
 \end{tabular}
-\caption{Analytical examples. Commit and verify columns count compression
-calls; path bytes assume $n=256$ and exclude the identical 256-byte record,
-index, and framing. These values are not benchmark results.}
-\label{tab:examples}
-\end{table}
+\end{center}
 
-\subsection{Time, parallelism, and updates}
-Let $\tau_{\mathrm B}$ be the time per baseline leaf-compression call,
-$\tau_1,\tau_2,\tau_3$ the costs of the three specialized roles,
-$\tau_{\mathrm N}$ the node-hash cost, and $\tau_{\oplus}$ the time for an
-$n$-bit XOR. Ignoring common memory traffic, the work estimates are
+At $N=2^{20}$, the committer saves $1{,}048{,}576$ calls and verification
+uses 23 rather than 24 calls, a $4.17\%$ reduction. Record plus path is
+896 bytes in both cases. These numbers illustrate the computational gain
+without conflating authentication digests with the record being opened.
+
+\subsection{Compression counts versus running time}
+Suppose a leaf-compression call costs $\tau$, an internal-node call costs
+$\nu$, and an $n$-bit XOR costs $\xi$. Assuming the specialized and baseline
+compression roles have the same cost, the work estimates are
 \begin{align}
- T_{\mathrm{standard}}
-   &=4N\tau_{\mathrm B}+(N-1)\tau_{\mathrm N},\\
- T_{8}
-   &=N(\tau_1+\tau_2+\tau_3+3\tau_{\oplus})+(N-1)\tau_{\mathrm N}.
- \label{eq:weighted}
+ T_{\mathrm{standard}}&=4N\tau+(N-1)\nu,\\
+ T_{8}&=3N\tau+3N\xi+(N-1)\nu.
 \end{align}
-Thus the saved work per record is
-$4\tau_{\mathrm B}-(\tau_1+\tau_2+\tau_3+3\tau_{\oplus})$.
-It is positive only when the concrete primitive and its separation mechanism
-make that inequality hold. The same expression is the saved work in a
-single-record verification. Lower compression counts do not by themselves
-measure wall-clock latency, especially for memory-bound tree construction.
+The saved work is $N(\tau-3\xi)$, before accounting for any difference
+in domain-separation overhead. If the primitive roles have unequal costs,
+replace $3\tau$ by their sum. Memory traffic, batching, and instruction-level
+parallelism can also affect elapsed time. Accordingly, a call-count saving
+is a useful model rather than an implementation benchmark.
 
-The two bottom calls in~\eqref{eq:t8} can run concurrently. With sufficient
-processors, the compression critical path from raw records to the root has
-length $d+2$, compared with $d+4$ for the sequential MD baseline. A different
-conventional leaf-aggregation tree can already have smaller depth than MD;
-we claim the depth advantage only for the stated sequential baseline.
+The first two calls of $\Tate$ can run concurrently. With sufficient
+processors, the compression critical path from the raw records to the root
+has length $d+2$, compared with $d+4$ for the sequential MD baseline. A
+conventional tree-shaped leaf hash can itself exploit parallelism, so this
+depth comparison is specific to the baseline in~\eqref{eq:baseline}.
 
-For cached partial-record updates, costs depend on which block changes.
-With $a$ and $b$ cached, changing a block among $x_1,\ldots,x_6$ requires
-two leaf calls, while changing $x_7$ or $x_8$ requires only the final call.
-A cached MD chain also admits cheaper suffix recomputation. The uniform
-one-call update saving in Table~\ref{tab:cost} concerns a whole-record
-replacement, not every possible single-word update policy.
-
-\section{Composition, multiproofs, and other leaf sizes}
-\label{sec:extensions}
-\subsection{A general leaf replacement rule}
-The accounting is not specific to a balanced binary tree. Let $\mathcal T$
-be any fixed ordered authentication tree on $N$ records, and let $W(\mathcal
-T)$ be the number of primitive calls used by its internal nodes. Suppose a
-baseline leaf hash costs $k$ calls and a replacement costs $k'$ calls on
-the same complete record domain, producing digests of the same length.
-Then
-\begin{equation}
- \mathrm{Build}_{\mathrm{old}}=Nk+W(\mathcal T),\qquad
- \mathrm{Build}_{\mathrm{new}}=Nk'+W(\mathcal T).
- \label{eq:general}
-\end{equation}
-Every single-record proof has the same authentication data, and verification
-saves $k-k'$ leaf calls. The collision-extraction argument of
-Theorem~\ref{thm:binding} applies to ordered nodes of any fixed arity: the
-current digest occupies the same coordinate on both paths at the selected
-position. Thus leaf replacement is a modular optimization, provided the
-replacement has the required complete-input collision resistance.
-
-For a full $a$-ary tree with $N=a^d$ and a one-call internal compression,
-$W(\mathcal T)=(N-1)/(a-1)$, and the authentication proof contains
-$(a-1)\log_a N$ digests. For $k=4$ and $k'=3$, the relative construction
-saving approaches
-\[
- \frac{1}{4+1/(a-1)}.
-\]
-For example, a ternary upper tree using a three-input primitive gives a
-limiting reduction of $2/9$. This compares the two leaf choices within the
-same ternary tree; it does not claim that ternary and binary paths have the
-same size. Larger arities require a compatible node primitive, whose cost
-must be included in $W$.
-
-\subsection{Batched openings}
-Let $S$ be a set of $u$ distinct record positions. A conventional multiproof
+\section{Batched openings and updates}
+\label{sec:batch}
+\paragraph{Multiproofs.}
+Let $S$ contain $u$ distinct record positions. A standard Merkle multiproof
 supplies the boundary digests needed to reconstruct the union of their paths.
-Let $B(S)$ be the number of supplied boundary digests, and let $K(S)$ count
-the internal node computations required by a deterministic reconstruction
-algorithm. Because the tree and queried positions are unchanged, $B(S)$ and
-$K(S)$ are identical for the two leaf choices. The proof carries $B(S)n$
-authentication bits in either case, and verification costs
+Let $B(S)$ be the number of transmitted boundary digests and $K(S)$ the
+number of internal hashes evaluated during reconstruction. The tree shape
+and queried positions are unchanged by our leaf substitution, so the
+verification costs are
 \begin{equation}
- 4u+K(S)\quad\hbox{versus}\quad3u+K(S).
+ 4u+K(S)\quad\text{versus}\quad3u+K(S),
  \label{eq:multiproof}
 \end{equation}
-The saving is exactly $u$ compression calls, not the number of queries with
-repetitions counted. This assumes each distinct opened leaf digest is
-computed once. For $u=N$, the boundary is empty and the comparison reduces
-to constructing the entire tree. For one record, it reduces to
-Table~\ref{tab:cost}. Path deduplication and caching are therefore compatible
-with the leaf optimization.
+and the authentication data has size $B(S)n$ in both cases. The saving is
+one call per distinct record whose digest is computed, not per repeated
+query. Existing path deduplication and leaf caching can be applied equally
+to both constructions.
 
-\subsection{Non-power-of-two vectors and longer records}
-For a public arbitrary $N$, one can use an agreed binary tree shape; a full
-binary tree with $N$ leaves still has $N-1$ internal nodes, although paths
-may have different lengths. Alternatively, pad to a public power of two
-with canonical dummy records and disallow openings of padded positions.
-When dummy leaf digests are cached, each real record still saves one call;
-any dummy and internal-node work must be treated identically in the baseline.
+For example, opening two sibling leaves at positions $2j$ and $2j+1$ in a
+tree with $d\geq1$ requires
+$d-1$ boundary digests: the verifier computes their common parent and follows
+its path. It performs $d$ internal hashes and either eight or six leaf calls.
+Thus verification drops from $d+8$ to $d+6$, with unchanged communication.
+At the other extreme, opening every record uses no boundary digests and
+reduces to the full commitment comparison.
 
-For some larger record formats, the same idea can be iterated. A record of
-$7k+1$ blocks can first hash eight blocks with $\Tate$ and then repeatedly
-hash the previous digest together with the next seven blocks. This costs
-$3k$ calls; a fixed-length MD leaf as in~\eqref{eq:md}, with a fixed final
-padding word when necessary, costs $\lceil(7k+1)/2\rceil$ calls. For $k=1$
-these are the three- and four-call hashes studied here. For fixed $k$, a
-collision in the iterated leaf yields a $\Tate$ collision by tracing equal
-outputs backward until their complete input tuples differ. All blocks are
-still opened as one record. Record lengths and padding must be unambiguous
-if different formats coexist. This extension does not imply savings when
-an existing leaf hash already has a more efficient interface for its input
-length.
+\paragraph{Updates and storage.}
+Replacing a whole record requires its new leaf digest and the $d$ ancestors
+on its path. It saves one compression call under the same comparison.
+If intermediate leaf values are cached and only one block changes, the
+counts depend on its position. In $\Tate$, changing a block among the first
+six needs two leaf calls, while changing either of the last two needs only
+the final call. A cached MD chain also admits cheaper suffix recomputation.
+The uniform one-call saving therefore concerns whole-record replacement.
 
-\section{Applications to succinct arguments}
-\label{sec:snarks}
-\subsection{Computing Merkle-based SNARKs}
-An important use case is a succinct argument whose prover commits to one or
-more oracle tables and later opens queried records. IOP-based compilation
-provides a general route to such arguments~\cite{BCS16}; FRI and WHIR provide
-concrete motivation for efficient commitments to evaluation data
-\cite{BBHR18,ACFY24}. We consider the implementation layer where each queried
-record is already encoded as eight $n$-bit blocks and is revealed in full.
-For a field-based table, ``eight blocks'' refers to the canonical bit encoding,
+Both schemes store the same $2N-1$ tree digests and the same records.
+Caching $\Tate$ intermediates is optional and adds memory beyond this count.
+An old commitment cannot be converted by changing its root alone: new leaf
+digests and their ancestors must be computed under the new hash suite.
+
+\paragraph{Other tree shapes.}
+For a public non-power-of-two record count, use an agreed binary tree shape
+or canonical padding. An unpadded full binary tree still has $N-1$ internal
+nodes, although path lengths can differ. For a complete $a$-ary upper tree,
+with one primitive call per internal node, the commitment counts become
+\[
+ 4N+\frac{N-1}{a-1}
+ \quad\text{and}\quad
+ 3N+\frac{N-1}{a-1}.
+\]
+The authentication proof has $(a-1)\log_aN$ digests in either construction.
+The leaf substitution preserves proof size within each chosen tree shape;
+it does not make binary and higher-arity proofs equal in size. If wider
+nodes require more than one call, their common cost must be included.
+
+\paragraph{Longer records.}
+The same approach extends to some larger fixed formats while retaining a
+complete-record opening. For a record of $7k+1$ blocks, first hash eight
+blocks with $\Tate$, then hash the resulting digest together with the next
+seven blocks, repeating until all blocks have been consumed. More precisely,
+\[
+ s_1=\Tate(x_1,\ldots,x_8),\qquad
+ s_j=\Tate(s_{j-1},x_{7j-5},\ldots,x_{7j+1})
+ \quad(2\leq j\leq k).
+\]
+The leaf digest is $s_k$. This uses $3k$ compression calls, compared with
+$\lceil(7k+1)/2\rceil$ for the fixed-length MD baseline, padding its final
+input with a fixed word when necessary. For example, a fifteen-block record
+uses six rather than eight calls. The original eight-block construction is
+the case $k=1$; the upper Merkle tree remains unchanged.
+
+For a fixed record length, a collision in this iterated leaf hash gives a
+$\Tate$ collision: trace the equal final digests backward until the complete
+input tuples of two corresponding invocations differ. If their tuples
+never differ, the records themselves are equal. The full record is still
+disclosed in an opening, so the tree-level binding reduction applies as
+before. Different record lengths require an unambiguous encoding and
+authenticated context. This extension is useful only when those longer
+records are already the application's opening unit; it does not justify
+enlarging records without accounting for the resulting communication.
+
+\section{Applications to SNARKs and authenticated data}
+\label{sec:applications}
+\subsection{Merkle-based succinct arguments}
+A natural application is an argument whose prover commits to oracle tables
+and opens the records queried by its verifier. IOP-based compilation gives
+a general setting for such commitments~\cite{BCS16}; evaluation-table
+protocols such as FRI~\cite{BBHR18} and WHIR~\cite{ACFY24} motivate efficient
+record hashing. The optimization applies when the existing leaf encoding
+already consists of eight $n$-bit blocks and the entire record is disclosed.
+For field-based data, eight blocks refers to the canonical bit encoding,
 not necessarily to eight field elements.
 
-Suppose the prover constructs $r$ binary trees with $N_1,\ldots,N_r$ leaves.
-Replacing only the leaf hashes saves
+If a prover constructs trees with $N_1,\ldots,N_r$ records, and the verifier
+checks $u_j$ distinct records in tree $j$, the savings are
 \begin{equation}
- \Delta_{\mathrm{prover}}=\sum_{j=1}^{r}N_j
- \label{eq:prover-saving}
+ \Delta_{\mathrm{prover}}=\sum_{j=1}^r N_j,
+ \qquad
+ \Delta_{\mathrm{verifier}}=\sum_{j=1}^r u_j
+ \label{eq:snark}
 \end{equation}
-compression calls during commitment. Suppose also that the verifier checks
-$u_j$ distinct records in tree $j$, with shared paths deduplicated as desired.
-The reduction in leaf-verification calls is
-\begin{equation}
- \Delta_{\mathrm{verifier}}=\sum_{j=1}^{r}u_j.
- \label{eq:verifier-saving}
-\end{equation}
-The authentication data has the same size and the same combinatorial
-layout. The roots and sibling digest values change, and any Fiat--Shamir
-challenges derived from those roots must of course be recomputed. The
-optimization preserves message lengths, not transcript bytes.
+compression calls. Shared paths may be deduplicated as usual. The number
+and sizes of roots, records, and authentication digests remain unchanged.
+Their values change, however, so Fiat--Shamir challenges derived from the
+commitments must be recomputed. Equal proof length does not mean identical
+transcript bytes.
 
-These are savings in the Merkle component. If, for example, that component
-accounts for a fraction $\alpha$ of prover time and achieves a measured
-$20\%$ time reduction, with the rest unchanged, total prover time becomes
-$(1-0.2\alpha)$ times its previous value. The compression-count calculation
-alone does not establish that measured reduction, and it says nothing about
-the costs of FFTs, sumchecks, polynomial arithmetic, or other commitments.
+These gains concern the Merkle component. If it accounts for a fraction
+$\alpha$ of prover time and a concrete implementation reduces that component
+by a fraction $\beta$, the overall time becomes $(1-\alpha\beta)$ times
+the original, assuming other costs stay fixed. A $20\%$ reduction in hash
+calls does not by itself imply $\beta=0.2$, nor does it reduce polynomial
+arithmetic, FFT, or sumcheck work.
 
-\subsection{Security requirements of the surrounding proof system}
-Theorem~\ref{thm:binding} supplies position binding even when a cheating
-prover selects the roots. This is the appropriate consistency statement to
-establish before using the commitment inside an argument. Nevertheless,
-position binding alone is not a theorem that every SNARK compiler remains
-secure after a hash substitution. A particular compiler may rely on
-extractability, oracle programmability, a random-oracle interface, or a
-quantum security statement in addition to collision resistance. Those
-requirements must be checked for the chosen instantiation. Likewise, a
-Fiat--Shamir challenge oracle should retain its own specified interface and
-separation from the commitment primitives.
+Proposition~\ref{prop:binding} supplies consistency even for roots chosen by
+a cheating prover. A particular compiler can require more, such as
+extractability or a programmable random-oracle interface. Those requirements
+must be checked separately; the binding argument alone is not a security
+proof for every SNARK using the modified commitment. Challenge hashing
+should also retain its own specified interface and separation.
 
-If the original argument already opens these same complete records, changing
-their leaf hash does not reveal additional record data. If one instead packs
-previously separate query locations into a record, opening the record reveals
-additional blocks. That change can affect communication, query distributions,
-and zero knowledge; it is outside the equal-opening-size comparison proved
-here. Merkle commitments themselves are not generally hiding commitments,
-and this optimization does not supply zero knowledge on its own.
+If the original protocol already reveals the same records, the substitution
+discloses no additional record contents. Packing previously separate query
+locations into larger leaves is a different change: it may reveal more data
+and affect query distributions, communication, or zero knowledge. The
+same-size claim in this note does not include that change of granularity.
 
-\subsection{Merkle verification inside a SNARK circuit}
-A second setting uses a SNARK to prove that a private record has a valid
-Merkle opening. If the circuit evaluates the entire leaf hash, its hash-call
-count also decreases by one. Let $g_{\mathrm B}$ be the circuit cost of a
-baseline compression call, $g_1,g_2,g_3$ the specialized costs, and
-$g_{\oplus}$ the cost of a single $n$-bit XOR. The change in the leaf portion
-of the circuit is a saving of
-\begin{equation}
- 4g_{\mathrm B}-(g_1+g_2+g_3+3g_{\oplus}).
- \label{eq:circuit}
-\end{equation}
-In a bit-oriented representation this expression may be favorable, but XOR
-and bit decomposition can be expensive in a prime-field arithmetic circuit.
-Replacing XOR by field addition is a different construction and does not
-inherit the bitstring security analysis automatically. Concrete constraint
-counts are therefore needed before claiming faster SNARK proving or faster
-recursive verification from this use case.
+\subsection{Proving an opening inside a SNARK}
+A second use is a SNARK that proves knowledge of a record and a valid Merkle
+path. Its circuit evaluates the leaf hash and then the ordinary node hashes.
+Let $g$ be the cost of each compression call and $g_{\oplus}$ the cost of
+one $n$-bit XOR in the chosen circuit representation. With equal costs for
+the specialized and baseline roles, the leaf-circuit saving is
+\[
+ 4g-(3g+3g_{\oplus})=g-3g_{\oplus}.
+\]
+This may be favorable in a bit-oriented representation. In a prime-field
+arithmetic circuit, XORs and bit decomposition can be expensive, so actual
+constraint counts are needed. Replacing XOR by field addition defines a
+different construction and does not automatically inherit the bitstring
+security analysis.
 
-\section{Other applications and practical scope}
-\label{sec:applications}
-The same record-level optimization can be used in many settings that already
-authenticate a complete fixed-size record: outsourced storage, authenticated
-database rows, fixed-size ledger entries, evaluation-table commitments, and
-content-addressed data organized into records. The basic interface stays the
-same: commit to a vector, identify a position, reveal a record, and check its
-path. Existing tree traversal, storage, and multiproof algorithms can operate
-above the substituted leaf digests.
+\subsection{Other uses and implementation choices}
+The same technique applies to authenticated file records, database rows,
+fixed-size ledger entries, and outsourced data whenever complete records
+are already the unit of authentication. The strongest total saving arises
+when many leaves are hashed, as in initial commitment or re-commitment.
+A verifier of one record still traverses the entire upper path. Tree
+traversal, proof storage, and multiproof algorithms can operate over the
+new leaf digests without changing their combinatorial structure.
 
-The strongest benefit occurs when many leaves must be processed, as in
-initial commitment or full re-commitment. Single-record verification still
-traverses the entire upper path. Memory use for stored records and tree
-digests is unchanged, unless an implementation elects to cache additional
-intermediate leaf values. An existing commitment cannot be converted by
-changing only its root: all leaf digests and their ancestors must be
-recomputed under the new hash suite.
+A concrete evaluation should use the same encodings, security parameters,
+primitive implementation, and tree shape for both schemes. It should
+include the cost of domain separation and report commitment throughput,
+single-opening latency, batched verification, and memory use. For a SNARK,
+it should also identify the fraction of total proving or verification time
+spent on Merkle hashing. This would turn the analytical savings established
+here into an end-to-end performance claim.
 
-A useful implementation study would compare the two schemes with identical
-encodings, security parameters, primitive implementations, tag handling, and
-thread counts. It would report compression counts together with commitment
-throughput, single-opening latency, batched verification, and memory traffic.
-For SNARK applications it should also report the fraction of end-to-end work
-spent in Merkle hashing and, where relevant, arithmetic-circuit costs. This
-paper provides exact analytical counts and a binding reduction, but no
-experimental timing claims.
+The main observation is simple: a complete record can be hashed more
+cheaply while retaining the ordinary authentication tree above it. For the
+specified eight-block format and baseline, this saves one compression call
+per committed or verified record, with exactly the same opening size and
+a direct reduction of position binding to complete-input collisions.
 
-\section{Conclusion}
-Hashing complete records with $\Tate$ and retaining an ordinary Merkle tree
-above them gives a simple way to reduce commitment computation without
-increasing local-opening communication. For eight-block records and the
-specified four-call baseline, the committer saves one compression call per
-record and the verifier saves one per distinct opened record. The upper
-paths retain their exact sizes, and position binding follows by extracting
-either a complete leaf collision or an ordinary node collision.
-
-The construction applies wherever complete records are already the unit of
-authentication. In particular, it offers a concrete optimization for the
-Merkle computations used in suitable SNARK implementations, both during
-oracle commitment and during opening verification. Its practical value is
-determined by the existing leaf format, the compression primitive, and the
-fraction of total computation devoted to hashing.
-
-\section*{AI methodologies}
-OpenAI Codex assisted in drafting the exposition, formulating the reductions,
-and deriving the analytical cost comparisons throughout this research draft.
-No timing experiments are reported. Human authors must review the technical
-claims, references, and originality assessment before submission.
+\paragraph{AI assistance.}
+OpenAI Codex assisted with drafting and the analytical comparisons.
 
 \begin{thebibliography}{DKMN21}
 \bibitem[ACFY24]{ACFY24}
 Gal Arnon, Alessandro Chiesa, Giacomo Fenzi, and Eylon Yogev.
-\newblock WHIR: Reed--Solomon Proximity Testing with Super-Fast Verification.
+\newblock \emph{WHIR: Reed--Solomon Proximity Testing with Super-Fast Verification}.
 \newblock Cryptology ePrint Archive, Paper 2024/1586, 2024.
 \newblock \url{https://eprint.iacr.org/2024/1586}.
 
 \bibitem[BBHR18]{BBHR18}
 Eli Ben-Sasson, Iddo Bentov, Yinon Horesh, and Michael Riabzev.
-\newblock Fast Reed--Solomon Interactive Oracle Proofs of Proximity.
-\newblock In \emph{ICALP 2018}, LIPIcs 107, pages 14:1--14:17, 2018.
+\newblock \emph{Fast Reed--Solomon Interactive Oracle Proofs of Proximity}.
+\newblock ICALP 2018, LIPIcs 107, pages 14:1--14:17, 2018.
 \newblock \url{https://doi.org/10.4230/LIPIcs.ICALP.2018.14}.
 
 \bibitem[BCS16]{BCS16}
 Eli Ben-Sasson, Alessandro Chiesa, and Nicholas Spooner.
-\newblock Interactive Oracle Proofs.
-\newblock In \emph{TCC 2016-B}, pages 31--60, 2016.
+\newblock \emph{Interactive Oracle Proofs}. TCC 2016-B, 2016.
 \newblock \url{https://eprint.iacr.org/2016/116}.
 
 \bibitem[DKMN21]{DKMN21}
 Yevgeniy Dodis, Dmitry Khovratovich, Nicky Mouha, and Mridul Nandi.
-\newblock T5: Hashing Five Inputs with Three Compression Calls.
-\newblock Cryptology ePrint Archive, Paper 2021/373, 2021.
+\newblock \emph{T5: Hashing Five Inputs with Three Compression Calls}.
+\newblock Cryptology ePrint Archive, Paper 2021/373, 2021, Section~6.
 \newblock \url{https://eprint.iacr.org/2021/373}.
-\newblock The larger-input extension used here is in Section~6 of the
-extended version.
 \end{thebibliography}
 \end{document}
