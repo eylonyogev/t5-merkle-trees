@@ -958,7 +958,12 @@ $4N-1$ rather than $5N-1$ compression calls, and verification uses
 $\log_2N+3$ rather than $\log_2N+4$. The opened record and its authentication
 path have exactly the same sizes. We give the construction, a binding
 reduction, and precise cost comparisons, including batched openings and
-applications to Merkle-based SNARKs.
+applications to Merkle-based SNARKs. We also describe concrete SHA-256,
+BLAKE3, and Keccak experiments: using more of the native compression input,
+combining gadgets with short MD tails, and exposing independent work to SIMD.
+Measured improvements depend on record width and on the optimized baseline;
+the concrete research modes require assumptions beyond compressor collision
+resistance alone.
 \end{abstract}
 
 \section{The idea}
@@ -983,13 +988,15 @@ in a tree containing eight times as many leaves. Since the verifier knows
 every input to $\Tate$, security uses its ordinary collision resistance;
 no specialized partial-opening property is needed.
 
-This note concerns the placement and use of an existing compression
-construction. It does not propose a new primitive. Unlike trees that replace
-the internal aggregation rule as well, the change here is confined to the
-leaves. It applies when complete records are already the unit of access,
-including suitable oracle-table commitments used in succinct arguments.
-All performance figures below count compression calls; they are not timing
-measurements.
+The basic construction concerns the placement and use of an existing
+compression construction. The change is confined to the leaves and applies
+when complete records are already the unit of access, including suitable
+oracle-table commitments used in succinct arguments. The first part of this
+note gives an abstract call-count comparison. Section~\ref{sec:concrete}
+then records concrete adapters and implementation lessons, including new
+research variants whose security status is stated separately.
+Section~\ref{sec:measurements} reports measured running times and identifies
+the particular standard-hash comparator used in each experiment.
 
 \section{Construction and openings}
 \label{sec:construction}
@@ -1696,6 +1703,364 @@ authenticated context. This extension is useful only when those longer
 records are already the application's opening unit; it does not justify
 enlarging records without accounting for the resulting communication.
 
+\section{Concrete compression interfaces and schedules}
+\label{sec:concrete}
+The Rust implementation in \path{impl/} specializes the Plonky3 binary
+Merkle construction and provides an optimized standard-hash comparator.
+Our workload contains $M=2^{20},\ldots,2^{26}$ 32-bit field encodings,
+with $W=2^0,\ldots,2^{14}$ elements per record. Thus a leaf contains
+$B=4W$ bytes and the tree has $N=M/W$ leaves. The implementation treats
+these as little-endian u32 encodings; any field-canonicality check belongs
+to the surrounding protocol. In this section digests have $n=256$ bits,
+or 32 bytes. Every opening still reveals the entire record.
+
+\subsection{Count the actual primitive, including padding}
+An abstract $3n$-to-$n$ call need not cost one native compression. In our
+tagged SHA-256 adapter, a 17-byte tag followed by 96 input bytes occupies
+two padded SHA-256 blocks. Consequently, ordinary T8 costs six native
+calls for a 256-byte leaf, whereas standard SHA-256 costs five. Tagged
+SHA3-256 can hash the same 113 bytes in one permutation, but standard
+SHA3-256 hashes a 256-byte leaf in only two permutations, fewer than
+T8's three. This explains why merely translating the abstract gadget can
+lose even before accounting for XORs, packing, and function dispatch.
+
+For a nonempty $B$-byte leaf, the standard implementations use
+\begin{align}
+ c_{\mathrm{SHA256}}(B)
+   &=\floor{B/64}+1+\mathbf{1}[B\bmod64\geq56],\nonumber\\
+ c_{\mathrm{SHA3}}(B)&=\floor{B/136}+1,\nonumber\\
+ c_{\mathrm{BLAKE3}}(B)
+   &=\ceil{B/64}+\ceil{B/1024}-1.
+ \label{eq:native-standard}
+\end{align}
+The last expression includes BLAKE3's internal chunk-tree compressions.
+One unit means one SHA-256 or BLAKE3 compression, or one full 24-round
+Keccak-f[1600] permutation. Their execution times are different. Each
+backend's unchanged binary parent costs one such unit, giving
+\[
+ C_{\mathrm{commit}}=N c(B)+N-1,\qquad
+ C_{\mathrm{verify}}=c(B)+\log_2N.
+\]
+These native counts are distinct from the fixed-format MD comparator in
+\eqref{eq:baseline}. Padding boundaries can remove a saving at some widths;
+there is no strict improvement at every parameter size.
+
+\subsection{Use the complete native input while reserving real role bits}
+\paragraph{SHA-256: 95 payload bytes per call.}
+A raw SHA-256 compression accepts a 32-byte chaining value (CV) and a
+64-byte message block. Reserve one CV byte for a role $\rho$ and use the
+remaining 31 CV bytes as payload. For a 95-byte string $u$, define
+\[
+ h_\rho(u)=\mathsf{Compress}_{\mathrm{SHA256}}
+       (\rho\concat u[64{:}95],\;u[0{:}64]).
+\]
+Here slices have byte offsets and exclude their right endpoint; native SHA
+words are decoded and the result encoded in big-endian order. Distinct role
+bytes specify disjoint subsets of the raw compressor's input space. XORing
+a role constant into an \emph{unrestricted} CV would not achieve this:
+each role would still have the same domain. Nor may one discard a byte of
+a previous digest just to make room for a tag.
+
+\paragraph{BLAKE3: seven counter bytes are additional payload.}
+The native BLAKE3 interface also contains a 64-bit counter~\cite{BLAKE3}.
+For a 103-byte payload, use bytes $0{:}64$ for the block, $64{:}96$ for
+the CV, and $96{:}103$ for the low 56 counter bits in little-endian order.
+The high counter byte is the role. Fix the block length to 64 and flags to
+\texttt{KEYED\_HASH | CHUNK\_START | CHUNK\_END} (19), without
+\texttt{ROOT}. All 103 payload bytes then enter one compression. These are
+research oracles over raw compression, not calls to standard BLAKE3 hashing;
+the counter payload is not a sequential chunk index.
+
+\subsection{Widen the gadget and put the dependency at its root}
+Let $m\geq64$ be the payload bytes accepted by one role oracle. The
+generalized T gadget takes two $m$-byte strings $u,v$, a 32-byte shared
+word $s$, and an $(m-64)$-byte extension $e$:
+\[
+ a=h_0(u),\quad b=h_1(v),\qquad
+ T(u,v,s,e)=h_2(a\oplus s,b\oplus s,e)\oplus s.
+\]
+It consumes $3m-32$ bytes in three calls. In subsequent stages, place the
+previous digest in $s$ and absorb $3m-64$ fresh bytes. The first two calls
+of every stage then depend only on fresh input, enabling lookahead across
+stages. This placement differs from the bottom-input chaining described
+in the earlier longer-record example. It changes the leaf function, but
+not its input capacity or number of calls.
+
+For ABR, we use only the height-three, seven-call gadget for which the
+corrected analysis treats the ordinary narrow case~\cite{DDN22}. Its
+widened variant takes four $m$-byte bottom inputs and three pairs
+$(s_j,e_j)$ of lengths 32 and $m-64$. With independent roles, compute
+\begin{align*}
+ a_i&=h_i(u_i) &&(0\leq i<4),\\
+ b_j&=h_{4+j}(a_{2j}\oplus s_j,a_{2j+1}\oplus s_j,e_j)
+           \oplus a_{2j+1} &&(j=0,1),\\
+ A&=h_6(b_0\oplus s_2,b_1\oplus s_2,e_2)\oplus b_1.
+\end{align*}
+The feed-forward is the right child, whereas T feeds forward its shared
+word. The widened ABR gadget consumes $7m-96$ bytes. Chaining through
+the \emph{root shared word} $s_2$ leaves $7m-128$ fresh bytes per stage
+and makes all six non-root calls independent of the preceding digest.
+This observation improves the verification schedule as well as commitment
+batching. It does not establish security of the widening or of arbitrary
+ABR heights; see Section~\ref{sec:concrete-security}.
+
+\begin{center}
+\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Backend & Gadget & First bytes & Later fresh bytes & Calls\\
+\midrule
+SHA-256 & T253 ($m=95$) & 253 & 221 & 3\\
+SHA-256 & ABR-wide ($m=95$) & 569 & 537 & 7\\
+BLAKE3 & T277 ($m=103$) & 277 & 245 & 3\\
+BLAKE3 & ABR-wide ($m=103$) & 625 & 593 & 7\\
+\bottomrule
+\end{tabular}
+\end{center}
+The T253 and T277 names describe first-stage byte capacities; they are
+local names for concrete adapters. The older T8 and T253 implementations
+retain their original schedules and roots.
+
+\subsection{Choose a short tail instead of paying for a whole gadget}
+Let a gadget cost $g$ calls, with first capacity $32+D$ and subsequent
+capacity $D$. Thus $(g,D)=(3,3m-64)$ for T and $(7,7m-128)$ for ABR.
+A restricted MD call packs the \emph{full} previous 32-byte digest and
+$t=m-32$ fresh bytes into its oracle input. Reserve a separate MD role.
+With $x_+=\max\{0,x\}$, compare
+\begin{align}
+ C_0(B)&=1+\ceil{(B-m)_+/t},\nonumber\\
+ C_k(B)&=gk+\ceil{(B-32-kD)_+/t}\qquad(k\geq1).
+ \label{eq:hybrid-planner}
+\end{align}
+The first option uses one direct MD head and then tails; the second uses
+gadgets followed by tails, or a final zero-padded gadget. The public width
+determines the plan. Fixed-width zero padding is injective within that
+width; different widths must be distinguished by the authenticated context.
+Tie-breaking chooses least padding, then most gadgets.
+
+An exhaustive search over the record length is unnecessary. Among complete
+gadgets, \eqref{eq:hybrid-planner} equals
+$\ceil{(B-32-k(D-gt))/t}$. Since $D-gt$ is 32 for T and 96 for ABR,
+this cost is nonincreasing in $k$. Integer arithmetic finds its minimum
+and the first $k$ attaining it, which minimizes padding among those ties.
+Compare that plan with the MD-only and final-padded-gadget candidates.
+The implementation uses this $O(1)$ planner and tests it against exhaustive
+enumeration.
+
+At 64 KiB, SHA-256 ABR-wide pads its 122nd gadget and costs 854 calls.
+BLAKE3 ABR-wide uses 110 gadgets and four MD tails, costing 774.
+T277 uses 266 gadgets and five tails, costing 803; 267 gadgets and two
+tails have the same call count but more padding. New T roles use
+\texttt{C0--C2} with MD role \texttt{C3}, and ABR uses
+\texttt{D0--D6} with MD role \texttt{D7}, all hexadecimal.
+The older SHA-256 T253 mode instead has an unrestricted 64-byte raw-MD
+tail. Its domain overlaps the restricted gadget domains, so it is not the
+same role-separated hybrid and needs a separate composition argument.
+
+\subsection{For Keccak, change the absorption mode}
+SHA3-256 already absorbs 136 bytes per permutation. A chained T gadget
+absorbs $m-64/3$ fresh bytes per call, so even filling an oracle to
+$m=136$ bytes cannot beat that rate. A useful adapter would need
+$m>157\frac13$; the usual tagged SHA3 wrapper cannot provide it.
+
+SHAKE128 has a 168-byte rate~\cite{FIPS202}. Taking its first 32 output
+bytes gives the exact standard XOF, with no extra prefix and
+$\floor{B/168}+1$ permutations. It targets 128-bit classical preimage
+security, unlike SHA3-256's 256-bit preimage target. This is an explicit
+choice of a different leaf hash, not an implementation of SHA3-256 with
+fewer rounds.
+
+SPONGE-DM~\cite{SPONGEDM} offers another tradeoff. Let $P$ be full-round
+Keccak-f[1600], with capacity 272 and rate 1,328 bits (166 bytes).
+Starting with a zero 200-byte state, absorb each padded rate block $v$ by
+\[
+ x=\mathsf{state}\oplus(v\concat0^{272}),\qquad
+ \mathsf{state}=P(x)\oplus x.
+\]
+The feed-forward covers the \emph{entire} state, not only the capacity.
+Our encoding prepends the 17 bytes
+\texttt{MTLFv001} followed by hexadecimal
+\texttt{04 50 00 00 00 00 00 00 00}, and uses $\mathsf{pad10^*1}$.
+Its first 32 output bytes need no further permutation. The leaf costs
+$\floor{(B+17)/166}+1$ calls. Both Keccak alternatives retain the
+ordinary SHA3-256 binary parents.
+
+At $B=65{,}536$, the useful leaf-call counts are as follows. No row implies
+that the modes have interchangeable security guarantees.
+\begin{center}
+\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Backend & Leaf mode & Standard & Variant & Fewer calls\\
+\midrule
+SHA-256 & ABR-wide & 1,025 & 854 & $16.7\%$\\
+BLAKE3 & ABR-wide & 1,087 & 774 & $28.8\%$\\
+BLAKE3 & T277 & 1,087 & 803 & $26.1\%$\\
+Keccak & SHAKE128 & 482 & 391 & $18.9\%$\\
+Keccak & SPONGE-DM272 & 482 & 395 & $18.0\%$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{What is proved, and what remains an assumption}
+\label{sec:concrete-security}
+Collision resistance of a compression function does not, on its own,
+imply collision resistance of T or ABR~\cite{CN24}. Their analyses use
+independent ideal role functions. Disjoint role encodings are necessary
+for the intended model, but do not prove ideal behavior of concrete raw
+SHA-256 or variable-CV, variable-counter BLAKE3 compression. The earlier
+T8 theorem is not a security theorem for every adapter in this section.
+
+The corrected ABR result concerns the narrow height-three gadget; it
+neither proves arbitrary-height ABR nor validates its specialized partial
+openings~\cite{DDN22}. Our widened ABR adaptation has a provisional
+classical reduction sketch. For each role, map each distinct wide query
+$(x,y,z)$ injectively to a previously unused narrow pair $(u,v)$ with
+$u\oplus v=x\oplus y$, without inspecting its output. Each XOR class
+has $2^n$ pairs; require fewer than $2^n$ mapped queries per role,
+including completion queries, so these assignments cannot exhaust a class.
+Writing $(u,v)=(x\oplus r,y\oplus r)$ lets one replace
+the shared word of an internal vertex by $s\oplus r$ while preserving
+its output and right-child feed-forward. The recorded injective maps then
+recover a distinct narrow message pair from a wide collision. Complete
+both colliding evaluations first (at most 14 additional queries), and
+extract a single-gadget or MD-tail collision before applying this argument
+to a chain. This sketch still requires formal review and retains the
+polynomial loss of the corrected narrow bound; we do not claim a tight
+concrete 128-bit guarantee.
+
+For SPONGE-DM, the ideal-permutation analysis gives generic classical
+exponents $\min(n/2,c/2)$ for collisions, $n$ for preimages, and
+$\min(n,c-\log_2\alpha)$ for second preimages, subject to the paper's
+parameter conditions~\cite{SPONGEDM}. Our equal input/output capacities
+$c=c'=272$ satisfy those conditions. Up to 64 KiB, $\alpha\leq395$
+absorbed blocks, so these exponents are 128, 256, and 256. This is not
+a proof of concrete Keccak security or a guarantee for arbitrary record
+lengths. For T5, even an $n$-bit output admits a generic preimage attack
+around $2^{2n/3}$ queries~\cite{DKMN21}; collision and preimage claims
+must not be conflated.
+
+The same complete-record binding reduction applies once the actual leaf
+and parent functions have the needed collision resistance. It does not
+establish extractability, quantum security, or substitutability for a
+random oracle in a surrounding proof system. Candidate bit-packed role
+encodings and the proposed Keccak T520 adapter remain unimplemented; in
+particular T520's joint-role composition is unfinished. The repository's
+\path{impl/NEXT_CONSTRUCTIONS.md} records these candidates and assumptions.
+
+\section{Engineering and measured performance}
+\label{sec:measurements}
+\subsection{Reduce packing overhead and expose independent work}
+\paragraph{Fuse the whole leaf computation.}
+Saving a compression can be outweighed by serializing each intermediate
+digest into bytes and packing it back into primitive words. The native
+SHA-256 ABR kernel reads 95-byte payloads directly, retains digest and
+chaining values in vector registers, and interleaves independent SHA2
+instructions. Its two-record commitment path also pairs the otherwise
+dependent root and tail calls across records. The BLAKE3 NEON kernel
+processes four records, including variable CVs and counters, and keeps
+intermediates in vector form across gadgets and MD tails.
+
+For single-opening verification there are no other records to fill lanes.
+Instead, bounded lookahead prepares independent branches of four BLAKE3
+stages, then evaluates their dependent roots in order. SHA verification
+pairs independent calls within a gadget. Scalar and two-record Keccak
+paths retain their permutation state across all absorbed blocks, dispatch
+once per leaf or batch, and pack full blocks word-wise even at the
+unaligned 166-byte rate. These paths use bounded scratch and no per-leaf
+heap allocation; runtime feature checks select native or portable kernels.
+
+\paragraph{Distinguish useful calls from occupied SIMD lanes.}
+SIMD does not change the mathematical call count, but a partially filled
+window can repeat work in unused lanes. For a 64 KiB BLAKE3 leaf, ABR-wide
+verification executes 786 compression lanes for 774 useful calls, and
+T277 executes 807 for 803. Four-record commitment batches occupy every
+lane. Count plots report useful calls, while timing includes this overhead.
+
+\paragraph{Optimize the baseline and the tree schedule as well.}
+The same independent-message batching helps standard SHA-256 without
+changing any digest or call count: process two leaves with separate IVs,
+standard padding, and length encodings through the SHA2 kernel. Standard
+BLAKE3 receives complete leaf slices to expose its own chunk SIMD; small
+equal-width leaves use its native multi-message interface. Tree digests
+are stored contiguously, leaf jobs are coarse enough to preserve SIMD
+batches, and small upper levels run serially. Recommit reuses storage,
+but fresh-commit measurements include allocation and destruction.
+Larger jobs and extra parent batching did not consistently improve the
+measured cases. Worker count is a machine-dependent tuning parameter,
+not a reason to assume linear scaling.
+
+\subsection{Measurements and the importance of the comparator}
+The 28 September 2026 sweep used an Apple M4 Max, four Rayon workers,
+Rust 1.96.0, and seven calibrated batch samples per case, targeting
+150 ms of sampling. It covered all 15 widths at $M=2^{20}$ and widths
+$W\in\{64,256,1024,16384\}$ at $M=2^{24},2^{26}$, for 460 timing rows.
+The table below uses $M=2^{26}$ and $W=2^{14}$ (256 MiB total, 64 KiB
+per leaf). Each speedup is the same executable's standard median divided
+by the variant median for the same backend and geometry.
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Backend & Mode & Commit ms & Speedup & Verify $\mu$s & Speedup\\
+\midrule
+SHA-256 & Standard & 25.959 & $1.00\times$ & 22.541 & $1.00\times$\\
+ & ABR-wide & 14.300 & $1.82\times$ & 14.300 & $1.58\times$\\
+BLAKE3 & Standard & 28.842 & $1.00\times$ & 27.956 & $1.00\times$\\
+ & ABR-wide & 20.611 & $1.40\times$ & 25.510 & $1.10\times$\\
+ & T277 & 21.433 & $1.35\times$ & 30.073 & $0.93\times$\\
+Keccak & SHA3-256 & 34.635 & $1.00\times$ & 65.955 & $1.00\times$\\
+ & SHAKE128 & 27.798 & $1.25\times$ & 55.520 & $1.19\times$\\
+ & SPONGE-DM272 & 29.274 & $1.18\times$ & 58.245 & $1.13\times$\\
+\bottomrule
+\end{tabular}
+\end{center}
+These are historical measurements against that version of the optimized
+standard kernel. The subsequent standard SHA-256 pair batching was measured
+separately on 29 September on an Apple M3. Across its sampled four-worker
+cases, standard commitment improved by $1.12$--$1.46\times$, preserving
+roots and leaving verification unchanged. It would be incorrect to divide
+the M4 ratios by those M3 improvements to obtain current speedups.
+
+The M3 control sweep does provide a direct comparison within the newer
+executable. At $M=2^{20}$ and 64 KiB leaves, standard SHA-256 commitment
+took 0.3372 ms versus 0.2926 ms for ABR-wide ($1.15\times$), and
+verification took 26.205 versus 15.571 $\mu$s ($1.68\times$).
+These are medians of two process medians, each using seven calibrated
+samples targeting 180 ms. They illustrate why an improved standard
+comparator can substantially reduce a construction's apparent commitment
+advantage without reducing its verification advantage: within this same
+M3 control sweep, the before executable gave ABR-wide a $1.67\times$
+commitment advantage, while its verification advantage was about
+$1.68\times$ in both executables.
+
+The improvements are not uniform. In the M4 sweep, BLAKE3 ABR-wide
+commitment at $W=16$ was only $0.80\times$ standard speed; at $W=64$
+it was $0.85\times$. Short Keccak leaves often have identical permutation
+counts, leaving feed-forward and packing overhead exposed. BLAKE3 T277's
+large-leaf verification is slower despite fewer useful calls. A local
+BLAKE3 speedup peak at 2 KiB records also reflects a standard-kernel
+dispatch boundary rather than a uniformly better asymptotic rate.
+
+\paragraph{Reproducibility and validation.}
+Backends and before/after processes run sequentially, with builds, input
+generation and proof preparation outside timing. Fresh commitment includes
+allocation and drop; verification includes a complete leaf and its path.
+Case order is fixed, and percentile spreads are not confidence intervals.
+The repository retains raw timings, commands, CPU and compiler details,
+and source/executable fingerprints in \path{impl/results/}.
+\path{impl/LOWCALL_RESULTS.md} describes the M4 sweep;
+\path{impl/CODE_SPEED_RESULTS.md} describes the M3 baseline optimization.
+Neither sweep establishes an end-to-end SNARK speedup.
+
+Independent scalar references, padding and schedule boundaries, odd SIMD
+batches, count-model agreement, and complete-opening tampering tests check
+the implementations. The recorded validation passes 76 tests and a doctest
+with and without parallelism, plus forced software Keccak checks. These
+are correctness checks on the tested architecture, not cryptographic proofs.
+
 \section{Applications to SNARKs and authenticated data}
 \label{sec:applications}
 \subsection{Merkle-based succinct arguments}
@@ -1766,13 +2131,14 @@ A verifier of one record still traverses the entire upper path. Tree
 traversal, proof storage, and multiproof algorithms can operate over the
 new leaf digests without changing their combinatorial structure.
 
-A concrete evaluation should use the same encodings, security parameters,
+A concrete evaluation should identify the encodings, security targets,
 primitive implementation, and tree shape for both schemes. It should
 include the cost of domain separation and report commitment throughput,
 single-opening latency, batched verification, and memory use. For a SNARK,
 it should also identify the fraction of total proving or verification time
-spent on Merkle hashing. This would turn the analytical savings established
-here into an end-to-end performance claim.
+spent on Merkle hashing. Section~\ref{sec:measurements} supplies measurements
+of the Merkle component; an end-to-end performance claim still requires
+the surrounding prover and verifier workload.
 
 The main observation is simple: a complete record can be hashed more
 cheaply while retaining the ordinary authentication tree above it. For the
@@ -1783,7 +2149,7 @@ a direct reduction of position binding to complete-input collisions.
 \paragraph{AI assistance.}
 OpenAI Codex assisted with drafting and the analytical comparisons.
 
-\begin{thebibliography}{DKMN21}
+\begin{thebibliography}{FIPS202}
 \bibitem[ACFY24]{ACFY24}
 Gal Arnon, Alessandro Chiesa, Giacomo Fenzi, and Eylon Yogev.
 \newblock \emph{WHIR: Reed--Solomon Proximity Testing with Super-Fast Verification}.
@@ -1806,5 +2172,37 @@ Yevgeniy Dodis, Dmitry Khovratovich, Nicky Mouha, and Mridul Nandi.
 \newblock \emph{T5: Hashing Five Inputs with Three Compression Calls}.
 \newblock Cryptology ePrint Archive, Paper 2021/373, 2021.
 \newblock \url{https://eprint.iacr.org/2021/373}.
+
+\bibitem[BLAKE3]{BLAKE3}
+The BLAKE3 team.
+\newblock \emph{BLAKE3 specification}.
+\newblock \url{https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.tex}.
+
+\bibitem[CN24]{CN24}
+Debasmita Chakraborty and Mridul Nandi.
+\newblock \emph{Lower Bound on Number of Compression Calls of a
+Collision-Resistance Preserving Hash}.
+\newblock Cryptology ePrint Archive, Paper 2024/1095, 2024.
+\newblock \url{https://eprint.iacr.org/2024/1095}.
+
+\bibitem[DDN22]{DDN22}
+Chandranan Dhar, Yevgeniy Dodis, and Mridul Nandi.
+\newblock \emph{Revisiting Collision and Local Opening Analysis of ABR Hash}.
+\newblock ITC 2022, LIPIcs 230, pages 11:1--11:22, 2022.
+\newblock \url{https://doi.org/10.4230/LIPIcs.ITC.2022.11}.
+
+\bibitem[FIPS202]{FIPS202}
+National Institute of Standards and Technology.
+\newblock \emph{SHA-3 Standard: Permutation-Based Hash and Extendable-Output
+Functions}. FIPS PUB 202, August 2015.
+\newblock \url{https://doi.org/10.6028/NIST.FIPS.202}.
+
+\bibitem[SLZ+25]{SPONGEDM}
+Siwei Sun, Shun Li, Zhiyu Zhang, Charlotte Lefevre, Bart Mennink,
+Zhen Qin, and Dengguo Feng.
+\newblock \emph{Permutation-Based Hashing With Stronger (Second) Preimage
+Resistance}.
+\newblock Cryptology ePrint Archive, Paper 2025/963, revised June 2026.
+\newblock \url{https://eprint.iacr.org/2025/963}.
 \end{thebibliography}
 \end{document}
