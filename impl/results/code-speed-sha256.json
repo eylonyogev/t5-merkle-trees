@@ -1,0 +1,80 @@
+{
+  "started_utc": "2026-09-29T11:04:39Z",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "cpu_model": "Apple M3; 8 cores; 24 GiB",
+  "environment": {
+    "RAYON_NUM_THREADS": "4",
+    "MERKLE_HASHES": "sha256",
+    "MERKLE_SCHEMES": "standard",
+    "MERKLE_TOTAL_LOGS": "20,24",
+    "MERKLE_WIDTH_LOGS": "0,4,6,8,14",
+    "MERKLE_OPERATIONS": "commit,verify",
+    "MERKLE_SWEEP_MS": "300",
+    "MERKLE_SWEEP_SAMPLES": "7",
+    "MERKLE_MAX_DIGEST_MIB": "256",
+    "MERKLE_ALLOW_LARGE": "false",
+    "MERKLE_FULL": "false"
+  },
+  "binaries": {
+    "before": {
+      "path": "/private/tmp/t5-code-speed/before",
+      "sha256": "baccef46fe8890427ee22bc29e106ae416baedde6d8387938bf7e06bf509a2a9"
+    },
+    "after": {
+      "path": "/private/tmp/t5-code-speed/after",
+      "sha256": "c8daa3ff8eee9666cb85bc1726fdd8444673910215e07a9abaacfd0c96a62f48"
+    }
+  },
+  "commands": [
+    {
+      "label": "before",
+      "run": 1,
+      "seconds": 5.567738499999905,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 1,
+      "seconds": 5.454086332998486,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 2,
+      "seconds": 5.522096374999819,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "before",
+      "run": 2,
+      "seconds": 5.658365625000442,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "before",
+      "run": 3,
+      "seconds": 5.6635876660002396,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 3,
+      "seconds": 5.531678249999459,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 4,
+      "seconds": 5.531212874999255,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    },
+    {
+      "label": "before",
+      "run": 4,
+      "seconds": 5.648269749999599,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=300 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^0\nsha256/standard/n2^20/w2^4\nsha256/standard/n2^20/w2^6\nsha256/standard/n2^20/w2^8\nsha256/standard/n2^20/w2^14\nskip sha256/n2^24/w2^0: 1073741792 digest bytes exceed cap\nsha256/standard/n2^24/w2^4\nsha256/standard/n2^24/w2^6\nsha256/standard/n2^24/w2^8\nsha256/standard/n2^24/w2^14\n"
+    }
+  ],
+  "protocol": "Sequential processes; alternating before/after order between passes. Each point is the median of seven calibrated batch averages. Fresh commit includes allocation/drop; verify includes the complete leaf and path. Input/proof preparation is outside timing. Case order is fixed within each process. Run spread is not a confidence interval.",
+  "finished_utc": "2026-09-29T11:05:24Z"
+}

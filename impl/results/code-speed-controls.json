@@ -1,0 +1,56 @@
+{
+  "started_utc": "2026-09-29T11:05:45Z",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "cpu_model": "Apple M3; 8 cores; 24 GiB",
+  "environment": {
+    "RAYON_NUM_THREADS": "4",
+    "MERKLE_HASHES": "sha256,sha3_256,blake3",
+    "MERKLE_SCHEMES": "standard,t5,t8,abr-wide",
+    "MERKLE_TOTAL_LOGS": "20",
+    "MERKLE_WIDTH_LOGS": "6,14",
+    "MERKLE_OPERATIONS": "commit,verify",
+    "MERKLE_SWEEP_MS": "180",
+    "MERKLE_SWEEP_SAMPLES": "7",
+    "MERKLE_MAX_DIGEST_MIB": "256",
+    "MERKLE_ALLOW_LARGE": "false",
+    "MERKLE_FULL": "false"
+  },
+  "binaries": {
+    "before": {
+      "path": "/private/tmp/t5-code-speed/before",
+      "sha256": "baccef46fe8890427ee22bc29e106ae416baedde6d8387938bf7e06bf509a2a9"
+    },
+    "after": {
+      "path": "/private/tmp/t5-code-speed/after",
+      "sha256": "c8daa3ff8eee9666cb85bc1726fdd8444673910215e07a9abaacfd0c96a62f48"
+    }
+  },
+  "commands": [
+    {
+      "label": "before",
+      "run": 1,
+      "seconds": 8.100441000000501,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=180 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^6\nsha256/t5/n2^20/w2^6\nsha256/t8/n2^20/w2^6\nsha256/abr-wide/n2^20/w2^6\nsha256/standard/n2^20/w2^14\nsha256/t5/n2^20/w2^14\nsha256/t8/n2^20/w2^14\nsha256/abr-wide/n2^20/w2^14\nsha3_256/standard/n2^20/w2^6\nsha3_256/t5/n2^20/w2^6\nsha3_256/t8/n2^20/w2^6\nskip sha3_256/abr-wide/n2^20/w2^6: leaf construction is not available for this hash suite\nsha3_256/standard/n2^20/w2^14\nsha3_256/t5/n2^20/w2^14\nsha3_256/t8/n2^20/w2^14\nskip sha3_256/abr-wide/n2^20/w2^14: leaf construction is not available for this hash suite\nblake3/standard/n2^20/w2^6\nblake3/t5/n2^20/w2^6\nblake3/t8/n2^20/w2^6\nblake3/abr-wide/n2^20/w2^6\nblake3/standard/n2^20/w2^14\nblake3/t5/n2^20/w2^14\nblake3/t8/n2^20/w2^14\nblake3/abr-wide/n2^20/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 1,
+      "seconds": 8.123022249999849,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=180 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^6\nsha256/t5/n2^20/w2^6\nsha256/t8/n2^20/w2^6\nsha256/abr-wide/n2^20/w2^6\nsha256/standard/n2^20/w2^14\nsha256/t5/n2^20/w2^14\nsha256/t8/n2^20/w2^14\nsha256/abr-wide/n2^20/w2^14\nsha3_256/standard/n2^20/w2^6\nsha3_256/t5/n2^20/w2^6\nsha3_256/t8/n2^20/w2^6\nskip sha3_256/abr-wide/n2^20/w2^6: leaf construction is not available for this hash suite\nsha3_256/standard/n2^20/w2^14\nsha3_256/t5/n2^20/w2^14\nsha3_256/t8/n2^20/w2^14\nskip sha3_256/abr-wide/n2^20/w2^14: leaf construction is not available for this hash suite\nblake3/standard/n2^20/w2^6\nblake3/t5/n2^20/w2^6\nblake3/t8/n2^20/w2^6\nblake3/abr-wide/n2^20/w2^6\nblake3/standard/n2^20/w2^14\nblake3/t5/n2^20/w2^14\nblake3/t8/n2^20/w2^14\nblake3/abr-wide/n2^20/w2^14\n"
+    },
+    {
+      "label": "after",
+      "run": 2,
+      "seconds": 8.109352250001393,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=180 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^6\nsha256/t5/n2^20/w2^6\nsha256/t8/n2^20/w2^6\nsha256/abr-wide/n2^20/w2^6\nsha256/standard/n2^20/w2^14\nsha256/t5/n2^20/w2^14\nsha256/t8/n2^20/w2^14\nsha256/abr-wide/n2^20/w2^14\nsha3_256/standard/n2^20/w2^6\nsha3_256/t5/n2^20/w2^6\nsha3_256/t8/n2^20/w2^6\nskip sha3_256/abr-wide/n2^20/w2^6: leaf construction is not available for this hash suite\nsha3_256/standard/n2^20/w2^14\nsha3_256/t5/n2^20/w2^14\nsha3_256/t8/n2^20/w2^14\nskip sha3_256/abr-wide/n2^20/w2^14: leaf construction is not available for this hash suite\nblake3/standard/n2^20/w2^6\nblake3/t5/n2^20/w2^6\nblake3/t8/n2^20/w2^6\nblake3/abr-wide/n2^20/w2^6\nblake3/standard/n2^20/w2^14\nblake3/t5/n2^20/w2^14\nblake3/t8/n2^20/w2^14\nblake3/abr-wide/n2^20/w2^14\n"
+    },
+    {
+      "label": "before",
+      "run": 2,
+      "seconds": 8.069958541998858,
+      "stderr": "perf_sweep architecture=aarch64 os=macos parallel=true rayon_threads=4 samples=7 target_ms=180 max_digest_mib=256 allow_large=false\nsha256/standard/n2^20/w2^6\nsha256/t5/n2^20/w2^6\nsha256/t8/n2^20/w2^6\nsha256/abr-wide/n2^20/w2^6\nsha256/standard/n2^20/w2^14\nsha256/t5/n2^20/w2^14\nsha256/t8/n2^20/w2^14\nsha256/abr-wide/n2^20/w2^14\nsha3_256/standard/n2^20/w2^6\nsha3_256/t5/n2^20/w2^6\nsha3_256/t8/n2^20/w2^6\nskip sha3_256/abr-wide/n2^20/w2^6: leaf construction is not available for this hash suite\nsha3_256/standard/n2^20/w2^14\nsha3_256/t5/n2^20/w2^14\nsha3_256/t8/n2^20/w2^14\nskip sha3_256/abr-wide/n2^20/w2^14: leaf construction is not available for this hash suite\nblake3/standard/n2^20/w2^6\nblake3/t5/n2^20/w2^6\nblake3/t8/n2^20/w2^6\nblake3/abr-wide/n2^20/w2^6\nblake3/standard/n2^20/w2^14\nblake3/t5/n2^20/w2^14\nblake3/t8/n2^20/w2^14\nblake3/abr-wide/n2^20/w2^14\n"
+    }
+  ],
+  "protocol": "Sequential processes; alternating before/after order between passes. Each point is the median of seven calibrated batch averages. Fresh commit includes allocation/drop; verify includes the complete leaf and path. Input/proof preparation is outside timing. Case order is fixed within each process. Run spread is not a confidence interval.",
+  "finished_utc": "2026-09-29T11:06:17Z"
+}

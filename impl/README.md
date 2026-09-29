@@ -11,6 +11,9 @@ Start with [EXPERIMENTS.md](EXPERIMENTS.md),
 [LOWCALL_RESULTS.md](LOWCALL_RESULTS.md) for the implementation, benchmarks and
 latest measured results. [NEWPASS_RESULTS.md](NEWPASS_RESULTS.md) and
 [RESULTS.md](RESULTS.md) preserve the earlier comparisons.
+The subsequent [SHA-256 code speedup](CODE_SPEED_RESULTS.md) records a
+root-preserving leaf-batching improvement measured against the previous code
+on an Apple M3.
 
 ## Preserved reference implementation
 

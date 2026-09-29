@@ -59,8 +59,75 @@ impl OptimizedHash for Sha256 {
         sha2::Sha256::digest(bytes).into()
     }
 
+    fn hash_leaves_fast(input: &[u8], leaf_bytes: usize, output: &mut [Digest]) {
+        check_leaf_batch(input, leaf_bytes, output.len());
+        #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+        if std::arch::is_aarch64_feature_detected!("sha2") {
+            sha256_hash_many(input, leaf_bytes, output);
+            return;
+        }
+        for (row, digest) in input.chunks_exact(leaf_bytes).zip(output) {
+            *digest = Self::hash_leaf_fast(row);
+        }
+    }
+
     fn standard_leaf_calls(bytes: usize) -> u64 {
         (bytes / 64) as u64 + 1 + u64::from(bytes % 64 >= 56)
+    }
+}
+
+// Interleave two complete standard hashes through the existing SHA2 kernel.
+// Each lane keeps its own chaining state and receives normal SHA-256 padding;
+// no construction, domain, or digest encoding changes. Other CPUs retain the
+// upstream scalar path rather than paying for a software pair implementation.
+#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+fn sha256_hash_many(input: &[u8], leaf_bytes: usize, output: &mut [Digest]) {
+    if output.is_empty() {
+        return;
+    }
+    let full_bytes = leaf_bytes / 64 * 64;
+    let remainder = leaf_bytes % 64;
+    let padding_bytes = if remainder < 56 { 64 } else { 128 };
+    let bit_length = (leaf_bytes as u64).wrapping_mul(8).to_be_bytes();
+    for (rows, digests) in input
+        .chunks(leaf_bytes.saturating_mul(2))
+        .zip(output.chunks_mut(2))
+    {
+        if digests.len() == 1 {
+            digests[0] = Sha256::hash_leaf_fast(rows);
+            continue;
+        }
+        let (left, right) = rows.split_at(leaf_bytes);
+        let mut states = [p3_sha256::H256_256; 2];
+        for offset in (0..full_bytes).step_by(64) {
+            crate::sha256_simd::compress_pair(
+                &mut states,
+                [
+                    left[offset..offset + 64].try_into().unwrap(),
+                    right[offset..offset + 64].try_into().unwrap(),
+                ],
+            );
+        }
+        let mut padding = [[0_u8; 128]; 2];
+        for (row, block) in [left, right].into_iter().zip(&mut padding) {
+            block[..remainder].copy_from_slice(&row[full_bytes..]);
+            block[remainder] = 0x80;
+            block[padding_bytes - 8..padding_bytes].copy_from_slice(&bit_length);
+        }
+        for offset in (0..padding_bytes).step_by(64) {
+            crate::sha256_simd::compress_pair(
+                &mut states,
+                [
+                    padding[0][offset..offset + 64].try_into().unwrap(),
+                    padding[1][offset..offset + 64].try_into().unwrap(),
+                ],
+            );
+        }
+        for (state, digest) in states.into_iter().zip(digests) {
+            for (word, bytes) in state.into_iter().zip(digest.chunks_exact_mut(4)) {
+                bytes.copy_from_slice(&word.to_be_bytes());
+            }
+        }
     }
 }
 
