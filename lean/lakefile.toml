@@ -1,0 +1,19 @@
+name = "T5Bounds"
+defaultTargets = ["T5Bounds"]
+
+[leanOptions]
+# An unfinished proof is only a warning by default, which would let one ship silently.
+warningAsError = true
+# An undeclared identifier would otherwise become a silent new variable.
+autoImplicit = false
+relaxedAutoImplicit = false
+
+# Pinned to the Mathlib release matching the toolchain in lean-toolchain.
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.29.1"
+
+[[lean_lib]]
+name = "T5Bounds"
